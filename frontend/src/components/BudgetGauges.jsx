@@ -65,7 +65,7 @@ export default function BudgetGauges({ tripId, setCurrentScreen }) {
           Go back to My Trips
         </button>
       </div>
-    );
+    ); 
   }
 
   const { total_budget, total_spent, spent_by_category } = budgetData;
