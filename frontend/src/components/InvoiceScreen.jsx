@@ -335,8 +335,8 @@ export default function InvoiceScreen({ tripId, setCurrentScreen }) {
       </div>
 
       {/* Invoice Table */}
-      <div className="border border-slate-200 rounded-2xl overflow-hidden mb-8 shadow-sm">
-        <table className="w-full text-sm text-left">
+      <div className="border border-slate-200 rounded-2xl overflow-x-auto mb-8 shadow-sm">
+        <table className="w-full text-sm text-left min-w-[800px]">
           <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase tracking-wider text-xs">
             <tr>
               <th className="p-4 w-12 border-r border-slate-200 text-center">#</th>

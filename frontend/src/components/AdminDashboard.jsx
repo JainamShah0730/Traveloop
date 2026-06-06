@@ -546,9 +546,9 @@ export default function AdminDashboard() {
       </div>
 
       {/* Chart + Destinations */}
-      <div style={styles.mainGrid}>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Growth Chart */}
-        <div style={styles.chartCard}>
+        <div style={styles.chartCard} className="lg:col-span-2 overflow-hidden">
           <div style={styles.chartHeader}>
             <span style={styles.chartTitle}>User Growth Trends</span>
             <div style={styles.pillGroup}>
