@@ -1,0 +1,206 @@
+// Traveloop — Travel Planning App
+// Prisma Schema for PostgreSQL (Supabase)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ──────────────────────────────────────────────
+// ENUMS
+// ──────────────────────────────────────────────
+
+enum ActivityType {
+  food
+  sightseeing
+  transport
+  hotel
+  shopping
+  other
+}
+
+// ──────────────────────────────────────────────
+// MODELS
+// ──────────────────────────────────────────────
+
+model User {
+  id            String         @id @default(cuid())
+  name          String
+  email         String         @unique
+  password_hash String?
+  avatar_url    String?
+  role          String         @default("user")
+  provider      String         @default("email")
+  created_at    DateTime       @default(now())
+
+  trips         Trip[]
+  collaborators Collaborator[]
+  budgets       Budget[]
+
+  @@map("users")
+}
+
+model Trip {
+  id           String         @id @default(cuid())
+  user_id      String
+  name         String
+  cover_photo  String?
+  start_date   DateTime
+  end_date     DateTime
+  total_budget Float          @default(0)
+  slug         String         @unique
+  is_public    Boolean        @default(false)
+  created_at   DateTime       @default(now())
+
+  user          User           @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  stops         Stop[]
+  collaborators Collaborator[]
+  packing_items PackingItem[]
+  notes         Note[]
+
+  @@map("trips")
+}
+
+model Stop {
+  id          String     @id @default(cuid())
+  trip_id     String
+  city_name   String
+  country     String
+  lat         Float
+  lng         Float
+  from_date   DateTime
+  to_date     DateTime
+  order_index Int
+  created_at  DateTime   @default(now())
+
+  trip       Trip       @relation(fields: [trip_id], references: [id], onDelete: Cascade)
+  activities Activity[]
+  budgets    Budget[]
+
+  @@map("stops")
+}
+
+model Activity {
+  id            String       @id @default(cuid())
+  stop_id       String
+  name          String
+  type          ActivityType
+  cost          Float        @default(0)
+  duration_mins Int          @default(60)
+  is_paid       Boolean      @default(false)
+  notes         String?
+  created_at    DateTime     @default(now())
+
+  stop Stop @relation(fields: [stop_id], references: [id], onDelete: Cascade)
+
+  @@map("activities")
+}
+
+model Budget {
+  id         String   @id @default(cuid())
+  stop_id    String
+  paid_by    String
+  label      String
+  amount     Float
+  split_with Json     @default("[]")
+  created_at DateTime @default(now())
+
+  stop Stop @relation(fields: [stop_id], references: [id], onDelete: Cascade)
+  user User @relation(fields: [paid_by], references: [id], onDelete: Cascade)
+
+  @@map("budgets")
+}
+
+model Collaborator {
+  id        String   @id @default(cuid())
+  trip_id   String
+  user_id   String
+  role      String   @default("editor")
+  joined_at DateTime @default(now())
+
+  trip Trip @relation(fields: [trip_id], references: [id], onDelete: Cascade)
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([trip_id, user_id])
+  @@map("collaborators")
+}
+
+model PackingItem {
+  id         String  @id @default(cuid())
+  trip_id    String
+  name       String
+  category   String
+  is_checked Boolean @default(false)
+
+  trip Trip @relation(fields: [trip_id], references: [id], onDelete: Cascade)
+
+  @@map("packing_items")
+}
+
+model Note {
+  id            String   @id @default(cuid())
+  trip_id       String
+  title         String?
+  type          String   @default("ideas")
+  content       String
+  has_reminder  Boolean  @default(false)
+  reminder_time DateTime?
+  is_read       Boolean  @default(false)
+  updated_at    DateTime @updatedAt
+
+  trip Trip @relation(fields: [trip_id], references: [id], onDelete: Cascade)
+
+  @@map("notes")
+}
+
+model Destination {
+  id          String          @id @default(cuid())
+  name        String
+  country     String
+  region      String?
+  type        String
+  cover_photo String?
+  description String
+  is_active   Boolean         @default(true)
+  packages    TravelPackage[]
+
+  @@map("destinations")
+}
+
+model TravelPackage {
+  id             String       @id @default(cuid())
+  destination_id String
+  destination    Destination  @relation(fields: [destination_id], references: [id], onDelete: Cascade)
+  name           String
+  duration_days  Int
+  tagline        String
+  cities_covered String[]
+  highlights     String[]
+  best_season    String
+  budgetTiers    BudgetTier[]
+
+  @@map("travel_packages")
+}
+
+model BudgetTier {
+  id                 String        @id @default(cuid())
+  package_id         String
+  package            TravelPackage @relation(fields: [package_id], references: [id], onDelete: Cascade)
+  tier_name          String
+  price_per_day_usd  Int
+  price_per_day_inr  Int
+  total_usd          Int
+  total_inr          Int
+  accommodation      String
+  food               String
+  transport          String
+  includes           String[]
+
+  @@map("budget_tiers")
+}
+
