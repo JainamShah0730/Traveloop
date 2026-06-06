@@ -55,7 +55,8 @@ app.use(
       
       const isAllowed = allowedOrigins.includes(origin) || 
                         /^http:\/\/localhost(:\d+)?$/.test(origin) || 
-                        /^http:\/\/127\.0\.0\.1(:\d+)?$/.test(origin);
+                        /^http:\/\/127\.0\.0\.1(:\d+)?$/.test(origin) ||
+                        origin.endsWith('.vercel.app');
       
       if (isAllowed) {
         callback(null, true);
