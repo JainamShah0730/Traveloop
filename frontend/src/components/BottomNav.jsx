@@ -1,4 +1,4 @@
-import { Home, Compass, Plus, Map, Wallet } from 'lucide-react';
+import { Home, Compass, Map, Wallet } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export default function BottomNav({ currentScreen, setCurrentScreen }) {
@@ -11,7 +11,7 @@ export default function BottomNav({ currentScreen, setCurrentScreen }) {
 
   const navItems = [
     { id: 'dashboard', icon: Home },
-    { id: 'citySearch', icon: Compass },
+    { id: 'discover', icon: Compass },
   ];
 
   const navItemsRight = [
@@ -36,15 +36,7 @@ export default function BottomNav({ currentScreen, setCurrentScreen }) {
           );
         })}
 
-        {/* Center Floating Create Button */}
-        <div className="relative -top-6">
-          <button 
-            onClick={() => handleNav('createTrip')}
-            className="w-14 h-14 bg-primary text-white rounded-full flex items-center justify-center shadow-puffy transform transition-transform hover:scale-105 active:scale-95"
-          >
-            <Plus size={28} />
-          </button>
-        </div>
+
 
         {navItemsRight.map(item => {
           const Icon = item.icon;

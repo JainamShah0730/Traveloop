@@ -141,8 +141,8 @@ export default function DiscoverPage() {
           {/* Row 1 — Duration */}
           {/* FIX 5: Improve filter chip visual design */}
           <div className="flex items-center gap-3 py-2">
-            <span className="text-sm font-semibold text-gray-500 w-20 flex-shrink-0">Duration:</span>
-            <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm font-semibold text-gray-500 w-16 md:w-20 flex-shrink-0">Duration:</span>
+            <div className="flex items-center gap-2 overflow-x-auto whitespace-nowrap pb-1 w-full" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
               {['All', '5 Days', '7 Days', '10 Days', '12 Days', '15 Days'].map(d => (
                 <button
                   key={d}
@@ -159,8 +159,8 @@ export default function DiscoverPage() {
 
           {/* Row 2 — Vibe */}
           <div className="flex items-center gap-3 py-2">
-            <span className="text-sm font-semibold text-gray-500 w-20 flex-shrink-0">Vibe:</span>
-            <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm font-semibold text-gray-500 w-16 md:w-20 flex-shrink-0">Vibe:</span>
+            <div className="flex items-center gap-2 overflow-x-auto whitespace-nowrap pb-1 w-full" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
               {['Beach', 'Culture', 'Adventure', 'Luxury', 'Nature', 'Royal', 'Zen', 'Tropical', 'Urban', 'Historic'].map(v => (
                 <button
                   key={v}
@@ -177,8 +177,8 @@ export default function DiscoverPage() {
 
           {/* Row 3 — Region */}
           <div className="flex items-center gap-3 py-2">
-            <span className="text-sm font-semibold text-gray-500 w-20 flex-shrink-0">Region:</span>
-            <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm font-semibold text-gray-500 w-16 md:w-20 flex-shrink-0">Region:</span>
+            <div className="flex items-center gap-2 overflow-x-auto whitespace-nowrap pb-1 w-full" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
               {['All', 'India', 'Asia', 'Europe', 'Middle East', 'Americas'].map(r => (
                 <button
                   key={r}

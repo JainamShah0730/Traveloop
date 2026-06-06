@@ -409,7 +409,7 @@ export default function TimelineView({
       {/* TIMELINE TAB — BUG 1+2 FIX: Per-day rendering */}
       {/* ═══════════════════════════════════════════ */}
       {activeTab === "timeline" && (
-        <div className="space-y-4 overflow-y-auto flex-1 pr-1" style={{ maxHeight: '60vh' }}>
+        <div className="space-y-4 overflow-y-auto flex-1 pr-1 pb-28 md:pb-4" style={{ maxHeight: '65vh' }}>
           {groupedDays.map((dayGroup) => {
             const isExpanded = expandedDays[dayGroup.dayNumber] !== false;
             const dayDate = formatDate(activeStop.from_date, dayGroup.dayNumber - 1);
@@ -485,7 +485,7 @@ export default function TimelineView({
                                   </h4>
                                 </div>
 
-                                <div className="flex items-center gap-2 flex-shrink-0">
+                                <div className="flex flex-col sm:flex-row sm:items-center items-end gap-1 sm:gap-2 flex-shrink-0">
                                   <button
                                     onClick={() => togglePaid(activity.id)}
                                     className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
@@ -524,7 +524,7 @@ export default function TimelineView({
       {/* BUDGET TAB — BUG 5 FIX: Reactive budget from activities */}
       {/* ═══════════════════════════════════════════ */}
       {activeTab === "budget" && (
-        <div className="space-y-6 overflow-y-auto flex-1 pr-1" style={{ maxHeight: '60vh' }}>
+        <div className="space-y-6 overflow-y-auto flex-1 pr-1 pb-28 md:pb-4" style={{ maxHeight: '65vh' }}>
           {/* Total Budget Overview Card */}
           <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-6 text-white">
             <div className="flex justify-between items-start mb-4">

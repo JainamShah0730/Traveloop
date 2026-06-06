@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Bell, Search, Clock, CheckCheck } from 'lucide-react';
+import { Bell, Search, Clock, CheckCheck, Menu, X, Home, Map, Wallet, Briefcase, Users, Receipt, Luggage, FileText, User, Shield, LogOut, Settings } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export default function Header({ currentScreen, setCurrentScreen }) {
@@ -8,6 +8,38 @@ export default function Header({ currentScreen, setCurrentScreen }) {
   const [reminders, setReminders] = useState([]);
   const [avatarUrl, setAvatarUrl] = useState(null);
   const [userName, setUserName] = useState('');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const navItems = [
+    { id: "dashboard", label: "Dashboard", icon: Home },
+    { id: "discover", label: "Packages", icon: Luggage },
+    { id: "myTrips", label: "My Trips", icon: Map },
+    { id: "builder", label: "Itinerary", icon: Briefcase },
+    { id: "community", label: "Community", icon: Users },
+    { id: "budget", label: "Budget", icon: Wallet },
+    { id: "invoice", label: "Invoice", icon: Receipt },
+    { id: "packing", label: "Packing List", icon: Luggage },
+    { id: "notes", label: "Notes", icon: FileText },
+    { id: "profile", label: "Profile", icon: User },
+    { id: "admin", label: "Admin", icon: Shield },
+  ];
+
+  const handleScreenChange = (screenId) => {
+    setIsMobileMenuOpen(false);
+    if (!setCurrentScreen) return;
+    setCurrentScreen(screenId);
+    if (screenId === "discover") {
+      navigate("/discover");
+    } else {
+      navigate("/");
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    window.location.reload();
+  };
 
   // Load user avatar from localStorage
   const loadUserData = () => {
@@ -99,10 +131,18 @@ export default function Header({ currentScreen, setCurrentScreen }) {
   };
 
   return (
-    <header className="bg-white/80 backdrop-blur-md sticky top-0 z-10 border-b border-slate-200 px-6 py-4 flex items-center justify-between">
-      <h2 className="text-xl md:text-2xl font-serif font-bold text-slate-800">
-        {screenTitles[currentScreen] || 'Traveloop'}
-      </h2>
+    <header className="bg-white/80 backdrop-blur-md sticky top-0 z-40 border-b border-slate-200 px-4 md:px-6 py-4 flex items-center justify-between">
+      <div className="flex items-center gap-3">
+        <button 
+          onClick={() => setIsMobileMenuOpen(true)}
+          className="md:hidden p-2 -ml-2 rounded-xl text-slate-600 hover:bg-slate-100"
+        >
+          <Menu size={24} />
+        </button>
+        <h2 className="text-xl md:text-2xl font-serif font-bold text-slate-800 line-clamp-1">
+          {screenTitles[currentScreen] || 'Traveloop'}
+        </h2>
+      </div>
       
       <div className="flex items-center space-x-4">
         <div className="hidden md:flex relative">
@@ -176,6 +216,57 @@ export default function Header({ currentScreen, setCurrentScreen }) {
           </div>
         )}
       </div>
+
+      {/* Mobile Full Screen Menu Overlay */}
+      {isMobileMenuOpen && (
+        <div className="md:hidden fixed inset-0 z-50 bg-white flex flex-col h-screen overflow-y-auto animate-in fade-in slide-in-from-left-4">
+          <div className="p-4 flex items-center justify-between border-b border-slate-100 sticky top-0 bg-white z-10">
+            <h1 className="text-2xl font-serif font-bold text-blue-600 italic">Traveloop</h1>
+            <button 
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="p-2 rounded-xl text-slate-500 hover:bg-slate-100"
+            >
+              <X size={24} />
+            </button>
+          </div>
+          
+          <nav className="flex-1 px-4 py-6 space-y-2">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = currentScreen === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => handleScreenChange(item.id)}
+                  className={`w-full flex items-center space-x-4 px-4 py-3.5 rounded-xl transition-all duration-200 ${
+                    isActive ? "bg-blue-50 text-blue-600 font-bold" : "text-slate-600 hover:bg-slate-50 font-medium"
+                  }`}
+                >
+                  <Icon size={22} className={isActive ? "text-blue-600" : "text-slate-400"} />
+                  <span className="text-lg">{item.label}</span>
+                </button>
+              );
+            })}
+          </nav>
+
+          <div className="p-4 border-t border-slate-100 pb-safe">
+            <button
+              onClick={() => handleScreenChange("settings")}
+              className="w-full flex items-center space-x-4 px-4 py-3.5 rounded-xl text-slate-600 hover:bg-slate-50 font-medium transition-all"
+            >
+              <Settings size={22} className="text-slate-400" />
+              <span className="text-lg">Settings</span>
+            </button>
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center space-x-4 px-4 py-3.5 rounded-xl text-red-600 hover:bg-red-50 font-medium transition-all mt-2"
+            >
+              <LogOut size={22} className="text-red-400" />
+              <span className="text-lg">Log Out</span>
+            </button>
+          </div>
+        </div>
+      )}
     </header>
   );
 }

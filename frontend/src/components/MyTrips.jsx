@@ -19,6 +19,13 @@ export default function MyTrips({ setCurrentScreen, setSelectedTripId }) {
           }
         });
 
+        if (res.status === 401) {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          window.location.reload();
+          return;
+        }
+
         if (!res.ok) {
           throw new Error('Failed to fetch trips');
         }

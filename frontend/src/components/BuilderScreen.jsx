@@ -124,13 +124,32 @@ export default function BuilderScreen({ tripId: propTripId, setCurrentScreen }) 
         </div>
       </div>
 
+      {/* Mobile Navigation Tabs (visible only on small screens) */}
+      <div className="flex lg:hidden overflow-x-auto whitespace-nowrap gap-2 pb-4 mb-2 -mx-4 px-4 scrollbar-hide shrink-0">
+        <button className="bg-primary text-white px-4 py-2 rounded-xl text-sm font-medium shadow-sm flex-shrink-0">
+          🗺️ Builder
+        </button>
+        <button onClick={() => setCurrentScreen('budget')} className="bg-white border border-slate-200 text-slate-600 px-4 py-2 rounded-xl text-sm font-medium flex-shrink-0">
+          💰 Budget
+        </button>
+        <button onClick={() => setCurrentScreen('packing')} className="bg-white border border-slate-200 text-slate-600 px-4 py-2 rounded-xl text-sm font-medium flex-shrink-0">
+          🎒 Packing
+        </button>
+        <button onClick={() => setCurrentScreen('notes')} className="bg-white border border-slate-200 text-slate-600 px-4 py-2 rounded-xl text-sm font-medium flex-shrink-0">
+          📝 Notes
+        </button>
+        <button onClick={() => setCurrentScreen('invoice')} className="bg-white border border-slate-200 text-slate-600 px-4 py-2 rounded-xl text-sm font-medium flex-shrink-0">
+          🧾 Invoice
+        </button>
+      </div>
+
       {error && (
-        <div className="bg-red-50 text-red-600 p-4 rounded-xl text-sm border border-red-100">
+        <div className="bg-red-50 text-red-600 p-4 rounded-xl text-sm border border-red-100 mb-6">
           {error}
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 flex-1 min-h-0 overflow-y-auto pb-safe">
         <ItineraryBuilder 
           trip={trip} 
           reloadTrip={fetchTrip} 

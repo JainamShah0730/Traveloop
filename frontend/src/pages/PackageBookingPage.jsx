@@ -401,15 +401,6 @@ export default function PackageBookingPage({ setCurrentScreen, setSelectedTripId
             <span className="font-medium text-primary">{selectedPackage.duration_days} Days</span>
           </div>
         </div>
-        <div className="flex items-center gap-2 text-sm">
-          <span className="text-slate-500">Start Date:</span>
-          <input
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            className="border border-slate-200 rounded-lg px-2 py-1 text-slate-700 outline-none focus:border-primary"
-          />
-        </div>
       </div>
 
       {/* SECTION 2 — 3 tier cards */}

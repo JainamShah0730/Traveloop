@@ -84,10 +84,10 @@ export default function BudgetGauges({ tripId, setCurrentScreen }) {
       </div>
 
       <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100 max-w-3xl mx-auto">
-        <div className="text-center mb-10">
+        <div className="text-center mb-10 px-2">
           <h2 className="text-xl font-medium text-slate-500 uppercase tracking-widest mb-2">Total Spent</h2>
-          <div className="text-6xl font-serif font-bold text-slate-800">₹{total_spent.toFixed(2)}</div>
-          <p className="text-slate-500 mt-2">
+          <div className="text-4xl sm:text-5xl md:text-6xl font-serif font-bold text-slate-800 break-all">₹{total_spent.toFixed(2)}</div>
+          <p className="text-slate-500 mt-2 text-sm sm:text-base">
             of ₹{total_budget.toFixed(2)} budget 
             ({remaining >= 0 ? `₹${remaining.toFixed(2)} remaining` : `₹${Math.abs(remaining).toFixed(2)} over budget!`})
           </p>
