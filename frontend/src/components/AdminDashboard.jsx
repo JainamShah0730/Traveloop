@@ -14,7 +14,7 @@ import { Line } from 'react-chartjs-2';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Filler, Tooltip, Legend);
 
-const API = 'http://localhost:3000/api/dashboard';
+const API = (import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/dashboard';
 
 // ── Mock Generators (fallback when API is unavailable) ──────────
 function mockStats() {

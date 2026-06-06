@@ -15,7 +15,7 @@ export default function AuthScreen({ onLogin }) {
     const endpoint = isLogin ? '/auth/login' : '/auth/register';
     
     try {
-      const res = await fetch(`http://localhost:3000${endpoint}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://localhost:3000') + ''}${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(isLogin ? { email: formData.email, password: formData.password } : formData),

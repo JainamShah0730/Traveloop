@@ -87,7 +87,7 @@ export default function ItineraryBuilder({
 
       // SAFE API URL
       const res = await fetch(
-        `http://localhost:3000/api/stops/${trip?.id}/stops`,
+        `${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://localhost:3000') + ''}/api/stops/${trip?.id}/stops`,
         {
           method: "POST",
           headers: {
@@ -154,7 +154,7 @@ export default function ItineraryBuilder({
       }
 
       const res = await fetch(
-        `http://localhost:3000/api/stops/${stopId}`,
+        `${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://localhost:3000') + ''}/api/stops/${stopId}`,
         {
           method: "DELETE",
           headers: {
@@ -211,7 +211,7 @@ export default function ItineraryBuilder({
 
     try {
       const res = await fetch(
-        `http://localhost:3000/api/trips/${trip.id}/generate-itinerary`,
+        `${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://localhost:3000') + ''}/api/trips/${trip.id}/generate-itinerary`,
         {
           method: "POST",
           headers: {
@@ -257,7 +257,7 @@ export default function ItineraryBuilder({
       }
 
       const res = await fetch(
-        `http://localhost:3000/api/trips/${trip.id}/regenerate-activities`,
+        `${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://localhost:3000') + ''}/api/trips/${trip.id}/regenerate-activities`,
         {
           method: "POST",
           headers: {

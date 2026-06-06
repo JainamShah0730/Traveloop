@@ -38,7 +38,7 @@ export default function BuilderScreen({ tripId: propTripId, setCurrentScreen }) 
 
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`http://localhost:3000/api/trips/${tripId}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://localhost:3000') + ''}/api/trips/${tripId}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

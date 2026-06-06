@@ -48,7 +48,7 @@ export default function TravelNotes({ tripId, setCurrentScreen }) {
     }
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`http://localhost:3000/api/notes/${tripId}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://localhost:3000') + ''}/api/notes/${tripId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (!res.ok) throw new Error('Failed to fetch notes');
@@ -74,7 +74,7 @@ export default function TravelNotes({ tripId, setCurrentScreen }) {
     if (!newContent.trim()) return;
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`http://localhost:3000/api/notes/${tripId}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://localhost:3000') + ''}/api/notes/${tripId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({
@@ -116,7 +116,7 @@ export default function TravelNotes({ tripId, setCurrentScreen }) {
     if (!editContent.trim()) return;
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`http://localhost:3000/api/notes/${id}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://localhost:3000') + ''}/api/notes/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({
@@ -142,7 +142,7 @@ export default function TravelNotes({ tripId, setCurrentScreen }) {
     if (!confirm('Are you sure you want to delete this note?')) return;
     try {
       const token = localStorage.getItem('token');
-      await fetch(`http://localhost:3000/api/notes/${id}`, {
+      await fetch(`${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://localhost:3000') + ''}/api/notes/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });

@@ -18,7 +18,7 @@ export default function InvoiceScreen({ tripId, setCurrentScreen }) {
       }
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch(`http://localhost:3000/api/trips/${tripId}`, {
+        const res = await fetch(`${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://localhost:3000') + ''}/api/trips/${tripId}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (!res.ok) throw new Error('Failed to fetch trip for invoice');
@@ -109,7 +109,7 @@ export default function InvoiceScreen({ tripId, setCurrentScreen }) {
     // 2. Persist to backend
     try {
       const token = localStorage.getItem('token');
-      await fetch(`http://localhost:3000/api/activities/${activityId}/toggle-paid`, {
+      await fetch(`${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://localhost:3000') + ''}/api/activities/${activityId}/toggle-paid`, {
         method: 'PATCH',
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -141,7 +141,7 @@ export default function InvoiceScreen({ tripId, setCurrentScreen }) {
     try {
       const token = localStorage.getItem('token');
       await Promise.all(unpaidItems.map(item => 
-        fetch(`http://localhost:3000/api/activities/${item.activityId}/toggle-paid`, {
+        fetch(`${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://localhost:3000') + ''}/api/activities/${item.activityId}/toggle-paid`, {
           method: 'PATCH',
           headers: { Authorization: `Bearer ${token}` },
         })

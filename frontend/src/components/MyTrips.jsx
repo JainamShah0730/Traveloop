@@ -13,7 +13,7 @@ export default function MyTrips({ setCurrentScreen, setSelectedTripId }) {
     const fetchTrips = async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch('http://localhost:3000/api/trips', {
+        const res = await fetch((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/trips', {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -40,7 +40,7 @@ export default function MyTrips({ setCurrentScreen, setSelectedTripId }) {
     if (!window.confirm('Are you sure you want to delete this trip? All its stops and activities will be removed.')) return;
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`http://localhost:3000/api/trips/${tripId}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://localhost:3000') + ''}/api/trips/${tripId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });

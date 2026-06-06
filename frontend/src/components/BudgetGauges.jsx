@@ -24,7 +24,7 @@ export default function BudgetGauges({ tripId, setCurrentScreen }) {
 
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch(`http://localhost:3000/api/trips/${tripId}/budget`, {
+        const res = await fetch(`${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://localhost:3000') + ''}/api/trips/${tripId}/budget`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }

@@ -267,7 +267,7 @@ export default function TimelineView({
     try {
       const token = localStorage.getItem("token");
       const res = await fetch(
-        `http://localhost:3000/api/activities/${activityId}`,
+        `${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://localhost:3000') + ''}/api/activities/${activityId}`,
         {
           method: "DELETE",
           headers: { Authorization: `Bearer ${token}` },
@@ -283,7 +283,7 @@ export default function TimelineView({
   const togglePaid = async (activityId) => {
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`http://localhost:3000/api/activities/${activityId}/toggle-paid`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://localhost:3000') + ''}/api/activities/${activityId}/toggle-paid`, {
         method: "PATCH",
         headers: { Authorization: `Bearer ${token}` }
       });

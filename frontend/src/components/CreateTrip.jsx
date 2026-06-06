@@ -28,7 +28,7 @@ export default function CreateTrip({ setCurrentScreen }) {
 
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:3000/api/trips', {
+      const res = await fetch((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/trips', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -61,7 +61,7 @@ export default function CreateTrip({ setCurrentScreen }) {
       else if (lowerName.includes("india") || lowerName.includes("rajasthan") || lowerName.includes("delhi") || lowerName.includes("tour")) countryName = "India";
 
       // Automatically create a stop for the trip
-      const stopRes = await fetch(`http://localhost:3000/api/stops/${tripId}/stops`, {
+      const stopRes = await fetch(`${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://localhost:3000') + ''}/api/stops/${tripId}/stops`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({
@@ -130,7 +130,7 @@ export default function CreateTrip({ setCurrentScreen }) {
 
         // Save activities to DB
         for (const act of finalSuggestions) {
-          await fetch(`http://localhost:3000/api/activities/${stopId}/activities`, {
+          await fetch(`${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://localhost:3000') + ''}/api/activities/${stopId}/activities`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
             body: JSON.stringify(act)

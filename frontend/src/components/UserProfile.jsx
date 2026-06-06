@@ -18,7 +18,7 @@ export default function UserProfile({ setUser, setCurrentScreen }) {
       try {
         const token = localStorage.getItem('token');
         if (!token) return;
-        const res = await fetch('http://localhost:3000/api/trips', {
+        const res = await fetch((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/trips', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (res.ok) {
@@ -76,7 +76,7 @@ export default function UserProfile({ setUser, setCurrentScreen }) {
 
       // Upload to backend
       const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:3000/auth/avatar', {
+      const res = await fetch((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/auth/avatar', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -116,7 +116,7 @@ export default function UserProfile({ setUser, setCurrentScreen }) {
     setUploading(true);
     try {
       const token = localStorage.getItem('token');
-      await fetch('http://localhost:3000/auth/avatar', {
+      await fetch((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/auth/avatar', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

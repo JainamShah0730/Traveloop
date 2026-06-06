@@ -45,7 +45,7 @@ export default function Header({ currentScreen, setCurrentScreen }) {
     try {
       const token = localStorage.getItem('token');
       if (!token) return;
-      const res = await fetch(`http://localhost:3000/api/notes/user/reminders`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://localhost:3000') + ''}/api/notes/user/reminders`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
@@ -71,7 +71,7 @@ export default function Header({ currentScreen, setCurrentScreen }) {
   const handleMarkAllRead = async () => {
     try {
       const token = localStorage.getItem('token');
-      await fetch(`http://localhost:3000/api/notes/user/reminders/mark-read`, {
+      await fetch(`${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://localhost:3000') + ''}/api/notes/user/reminders/mark-read`, {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -86,7 +86,7 @@ export default function Header({ currentScreen, setCurrentScreen }) {
   const handleMarkRead = async (id) => {
     try {
       const token = localStorage.getItem('token');
-      await fetch(`http://localhost:3000/api/notes/${id}`, {
+      await fetch(`${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://localhost:3000') + ''}/api/notes/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ is_read: true })

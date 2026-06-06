@@ -82,7 +82,7 @@ export default function PackingList({ tripId, setCurrentScreen }) {
         const token = localStorage.getItem('token');
 
         // 1. Fetch trip
-        const tripRes = await fetch(`http://localhost:3000/api/trips/${tripId}`, {
+        const tripRes = await fetch(`${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://localhost:3000') + ''}/api/trips/${tripId}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (!tripRes.ok) throw new Error('Failed to fetch trip');
@@ -97,7 +97,7 @@ export default function PackingList({ tripId, setCurrentScreen }) {
         }));
 
         // 3. Fetch saved items
-        const packRes = await fetch(`http://localhost:3000/api/packing/${tripId}`, {
+        const packRes = await fetch(`${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://localhost:3000') + ''}/api/packing/${tripId}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         const savedItems = packRes.ok ? await packRes.json() : [];
@@ -126,7 +126,7 @@ export default function PackingList({ tripId, setCurrentScreen }) {
             const isDummy = ['Shirts', 'Jeans', 'Socks', 'Underwear', 'Jacket', 'Comfortable Shoes', 'Sunglasses', 'Toothbrush', 'Toothpaste', 'Shampoo', 'Deodorant', 'Sunscreen', 'Hand Sanitizer', 'Phone Charger', 'Power Bank', 'Camera', 'Headphones', 'Universal Adapter', 'Passport', 'Flight Tickets', 'Hotel Booking', 'Travel Insurance', 'ID Card', 'First Aid Kit', 'Painkillers', 'Prescriptions', 'Vitamins', 'Umbrella', 'Water Bottle', 'Travel Pillow', 'Backpack'].includes(dbItem.name);
 
             if (isDummy) {
-              fetch(`http://localhost:3000/api/packing/${dbItem.id}`, {
+              fetch(`${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://localhost:3000') + ''}/api/packing/${dbItem.id}`, {
                 method: 'DELETE',
                 headers: { Authorization: `Bearer ${token}` }
               }).catch(console.error);
@@ -173,7 +173,7 @@ export default function PackingList({ tripId, setCurrentScreen }) {
         // 6. Background save missing items
         if (missingFromDb.length > 0) {
           Promise.allSettled(missingFromDb.map(async req => {
-            const res = await fetch(`http://localhost:3000/api/packing/${tripId}`, {
+            const res = await fetch(`${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://localhost:3000') + ''}/api/packing/${tripId}`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
               body: JSON.stringify({ name: req.item.name, category: req.catName })
@@ -218,7 +218,7 @@ export default function PackingList({ tripId, setCurrentScreen }) {
     try {
       for (const cat of cats) {
         for (const item of cat.items) {
-          await fetch(`http://localhost:3000/api/packing/${tId}`, {
+          await fetch(`${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://localhost:3000') + ''}/api/packing/${tId}`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -254,7 +254,7 @@ export default function PackingList({ tripId, setCurrentScreen }) {
       const cat = categories.find(c => c.id === categoryId);
       const item = cat?.items.find(i => i.id === itemId);
       const dbId = item?.dbId || itemId;
-      await fetch(`http://localhost:3000/api/packing/${dbId}/toggle`, {
+      await fetch(`${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://localhost:3000') + ''}/api/packing/${dbId}/toggle`, {
         method: 'PUT',
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -271,7 +271,7 @@ export default function PackingList({ tripId, setCurrentScreen }) {
 
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`http://localhost:3000/api/packing/${tripId}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://localhost:3000') + ''}/api/packing/${tripId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
