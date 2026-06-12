@@ -397,33 +397,55 @@ router.post("/:tripId/generate-itinerary", auth, async (req, res) => {
 
     const createdStops = [];
 
+    // Group items by location
+    const locationGroups = {};
     for (const item of itineraryJson) {
-      const stopDate = new Date(fullTrip.start_date);
-      stopDate.setDate(stopDate.getDate() + (item.day - 1));
+      if (!locationGroups[item.location]) {
+        locationGroups[item.location] = {
+           items: [],
+           area: item.area || "Unknown",
+           minDay: item.day,
+           maxDay: item.day
+        };
+      }
+      locationGroups[item.location].items.push(item);
+      if (item.day < locationGroups[item.location].minDay) locationGroups[item.location].minDay = item.day;
+      if (item.day > locationGroups[item.location].maxDay) locationGroups[item.location].maxDay = item.day;
+    }
+
+    let orderIndex = 0;
+    for (const location of Object.keys(locationGroups)) {
+      const group = locationGroups[location];
+      const fromDate = new Date(fullTrip.start_date);
+      fromDate.setDate(fromDate.getDate() + (group.minDay - 1));
+      const toDate = new Date(fullTrip.start_date);
+      toDate.setDate(toDate.getDate() + (group.maxDay - 1));
 
       const stop = await prisma.stop.create({
         data: {
           trip_id: tripId,
-          city_name: item.location,
-          country: item.area || "Unknown",
+          city_name: location,
+          country: group.area,
           lat: 0,
           lng: 0,
-          from_date: stopDate,
-          to_date: stopDate,
-          order_index: item.day,
+          from_date: fromDate,
+          to_date: toDate,
+          order_index: orderIndex++,
           activities: {
-            create: [{
-              name: item.notes || `Day ${item.day} in ${item.area}`,
-              type: "sightseeing", // default fallback or parse from category
-              cost: Number(item.cost ?? item.estimated_budget) || 0,
-              duration_mins: parseInt(item.duration) || 120,
-              notes: item.category
-            }]
+            create: group.items.map(item => {
+              totalNewBudget += Number(item.estimated_budget) || 0;
+              return {
+                name: item.notes || `Day ${item.day} in ${item.area}`,
+                type: "sightseeing", 
+                cost: Number(item.cost ?? item.estimated_budget) || 0,
+                duration_mins: parseInt(item.duration) || 120,
+                notes: `Day ${item.day} ${item.category || ''}`
+              };
+            })
           }
         },
         include: { activities: true }
       });
-      totalNewBudget += Number(item.estimated_budget) || 0;
       createdStops.push(stop);
     }
 

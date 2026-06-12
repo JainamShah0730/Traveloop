@@ -14,9 +14,10 @@
  */
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Loader2, ArrowLeft } from 'lucide-react';
+import { Loader2, ArrowLeft, BarChart2 } from 'lucide-react';
 import ItineraryBuilder from './ItineraryBuilder';
 import TimelineView from './TimelineView';
+import PollsPanel from './trips/PollsPanel';
 
 export default function BuilderScreen({ tripId: propTripId, setCurrentScreen }) {
   const params = useParams();
@@ -29,6 +30,7 @@ export default function BuilderScreen({ tripId: propTripId, setCurrentScreen }) 
   const [activeStopId, setActiveStopId] = useState(null);
   const [saveStatus, setSaveStatus] = useState('');
   const [selectedPackage, setSelectedPackage] = useState('standard');
+  const [showPolls, setShowPolls] = useState(false);
 
   const fetchTrip = async () => {
     if (!tripId) {
@@ -120,6 +122,21 @@ export default function BuilderScreen({ tripId: propTripId, setCurrentScreen }) 
                 {saveStatus}
               </span>
             )}
+            <button 
+              onClick={() => setShowPolls(true)}
+              className="ml-4 flex items-center gap-2 bg-indigo-50 text-indigo-700 px-4 py-2 rounded-xl text-sm font-medium hover:bg-indigo-100 transition-colors"
+            >
+              <BarChart2 size={16} /> Group Polls
+            </button>
+            <button 
+              onClick={() => {
+                setCurrentScreen('journal');
+                navigate('/');
+              }}
+              className="ml-2 flex items-center gap-2 bg-purple-50 text-purple-700 px-4 py-2 rounded-xl text-sm font-medium hover:bg-purple-100 transition-colors"
+            >
+              📔 Journal
+            </button>
           </div>
         </div>
       </div>
@@ -129,16 +146,19 @@ export default function BuilderScreen({ tripId: propTripId, setCurrentScreen }) 
         <button className="bg-primary text-white px-4 py-2 rounded-xl text-sm font-medium shadow-sm flex-shrink-0">
           🗺️ Builder
         </button>
-        <button onClick={() => setCurrentScreen('budget')} className="bg-white border border-slate-200 text-slate-600 px-4 py-2 rounded-xl text-sm font-medium flex-shrink-0">
+        <button onClick={() => { setCurrentScreen('budget'); navigate('/'); }} className="bg-white border border-slate-200 text-slate-600 px-4 py-2 rounded-xl text-sm font-medium flex-shrink-0">
           💰 Budget
         </button>
-        <button onClick={() => setCurrentScreen('packing')} className="bg-white border border-slate-200 text-slate-600 px-4 py-2 rounded-xl text-sm font-medium flex-shrink-0">
+        <button onClick={() => { setCurrentScreen('packing'); navigate('/'); }} className="bg-white border border-slate-200 text-slate-600 px-4 py-2 rounded-xl text-sm font-medium flex-shrink-0">
           🎒 Packing
         </button>
-        <button onClick={() => setCurrentScreen('notes')} className="bg-white border border-slate-200 text-slate-600 px-4 py-2 rounded-xl text-sm font-medium flex-shrink-0">
+        <button onClick={() => { setCurrentScreen('notes'); navigate('/'); }} className="bg-white border border-slate-200 text-slate-600 px-4 py-2 rounded-xl text-sm font-medium flex-shrink-0">
           📝 Notes
         </button>
-        <button onClick={() => setCurrentScreen('invoice')} className="bg-white border border-slate-200 text-slate-600 px-4 py-2 rounded-xl text-sm font-medium flex-shrink-0">
+        <button onClick={() => { setCurrentScreen('journal'); navigate('/'); }} className="bg-white border border-slate-200 text-slate-600 px-4 py-2 rounded-xl text-sm font-medium flex-shrink-0">
+          📔 Journal
+        </button>
+        <button onClick={() => { setCurrentScreen('invoice'); navigate('/'); }} className="bg-white border border-slate-200 text-slate-600 px-4 py-2 rounded-xl text-sm font-medium flex-shrink-0">
           🧾 Invoice
         </button>
       </div>
@@ -149,22 +169,15 @@ export default function BuilderScreen({ tripId: propTripId, setCurrentScreen }) 
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 flex-1 min-h-0 overflow-y-auto pb-safe">
-        <ItineraryBuilder 
-          trip={trip} 
-          reloadTrip={fetchTrip} 
-          activeStopId={activeStopId} 
-          setActiveStopId={setActiveStopId} 
-          selectedPackage={selectedPackage}
-          setSelectedPackage={setSelectedPackage}
-        />
+      <div className="max-w-5xl mx-auto w-full flex-1 min-h-0 overflow-y-auto pb-safe px-4">
         <TimelineView 
           trip={trip} 
           reloadTrip={fetchTrip} 
-          activeStopId={activeStopId} 
           selectedPackage={selectedPackage}
         />
       </div>
+
+      {showPolls && <PollsPanel tripId={trip.id} onClose={() => setShowPolls(false)} />}
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { Home, Compass, Map, Wallet } from 'lucide-react';
+import { Home, Compass, Map, Wallet, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export default function BottomNav({ currentScreen, setCurrentScreen }) {
@@ -6,12 +6,18 @@ export default function BottomNav({ currentScreen, setCurrentScreen }) {
 
   const handleNav = (screenId) => {
     setCurrentScreen(screenId);
-    navigate('/');
+    if (screenId === 'packages') {
+      navigate('/packages');
+    } else if (screenId === 'discover') {
+      navigate('/discover');
+    } else {
+      navigate('/');
+    }
   };
 
   const navItems = [
     { id: 'dashboard', icon: Home },
-    { id: 'discover', icon: Compass },
+    { id: 'packages', icon: Compass },
   ];
 
   const navItemsRight = [
@@ -35,9 +41,13 @@ export default function BottomNav({ currentScreen, setCurrentScreen }) {
             </button>
           );
         })}
-
-
-
+        {/* Central Copilot FAB */}
+        <button
+          onClick={() => handleNav('copilot')}
+          className="absolute -top-6 left-1/2 -translate-x-1/2 bg-blue-600 text-white p-4 rounded-full shadow-lg border-4 border-white hover:bg-blue-700 transition-colors"
+        >
+          <Sparkles size={24} />
+        </button>
         {navItemsRight.map(item => {
           const Icon = item.icon;
           const isActive = currentScreen === item.id;

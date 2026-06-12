@@ -13,12 +13,17 @@
     "db:push": "prisma db push"
   },
   "dependencies": {
+    "@duffel/api": "^4.25.0",
     "@google/generative-ai": "^0.21.0",
     "@prisma/client": "^6.2.0",
+    "@upstash/redis": "^1.38.0",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "express": "^4.21.0",
     "jsonwebtoken": "^9.0.2",
+    "node-cron": "^4.2.1",
+    "nodemailer": "^8.0.10",
+    "resend": "^6.12.4",
     "socket.io": "^4.8.0"
   },
   "devDependencies": {
@@ -32,4 +37,3 @@
     "seed": "node prisma/seed.js"
   }
 }
-

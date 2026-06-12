@@ -12,6 +12,7 @@ import {
   FileText,
   Receipt,
   Users,
+  Sparkles,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -25,7 +26,8 @@ export default function Sidebar({
   // SAFE NAVIGATION ITEMS
   const navItems = [
     { id: "dashboard", label: "Dashboard", icon: Home },
-    { id: "discover", label: "Packages", icon: Luggage },
+    { id: "copilot", label: "AI Copilot", icon: Sparkles },
+    { id: "packages", label: "Packages", icon: Luggage },
     { id: "myTrips", label: "My Trips", icon: Map },
     { id: "builder", label: "Itinerary", icon: Briefcase },
     { id: "community", label: "Community", icon: Users },
@@ -46,8 +48,10 @@ export default function Sidebar({
 
       setCurrentScreen(screenId);
 
-      // "discover" has its own route, navigate to it directly
-      if (screenId === "discover") {
+      // "packages" has its own route, navigate to it directly
+      if (screenId === "packages") {
+        navigate("/packages");
+      } else if (screenId === "discover") {
         navigate("/discover");
       } else {
         // Reset URL to root so the wildcard <Route path="*"> renders via currentScreen

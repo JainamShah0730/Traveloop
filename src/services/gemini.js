@@ -1,7 +1,7 @@
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
 async function suggestActivities({ cityName, country, travelStyle, existingActivities }) {
   const prompt = `Suggest 3 activities for ${cityName}, ${country} (${travelStyle} style). Already planned: ${existingActivities.length ? existingActivities.join(", ") : "none"}. Return ONLY a JSON array, no markdown. Each object: { "name": string, "type": "food"|"sightseeing"|"hotel"|"transport"|"shopping"|"other", "cost": number, "duration_mins": number, "notes": string }`;
@@ -20,6 +20,8 @@ async function generatePackingList({ destinations, totalDays, activityTypes, sea
 }
 
 async function generateItinerary({ name, destination, start_date, end_date, total_budget, preferences }) {
+  const totalDays = Math.max(1, Math.ceil((new Date(end_date) - new Date(start_date)) / (1000 * 60 * 60 * 24)) + 1);
+
   const prompt = `You are a travel planner. Generate a day-by-day itinerary as a JSON array.
 Each item in the array must have exactly these fields:
 - day: number (1, 2, 3...)
@@ -42,10 +44,12 @@ Trip: ${name}
 Destination: ${destination}
 Start: ${start_date}
 End: ${end_date}
+Total Trip Duration: ${totalDays} days
 Total budget: ₹${total_budget}
 Travel preferences: ${preferences.join(", ")}
 
-Generate one stop per day. Fit within the total budget.`;
+CRITICAL: You MUST generate activities for exactly ${totalDays} days. Do not generate fewer days.
+Generate an itinerary covering Day 1 through Day ${totalDays}. Fit within the total budget.`;
 
   const result = await model.generateContent(prompt);
   let text = result.response.text().trim();

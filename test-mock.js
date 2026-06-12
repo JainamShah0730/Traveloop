@@ -1,9 +1,22 @@
-import { generateMockTrip } from './frontend/src/utils/mockPackageData.js';
-const mockTrip = generateMockTrip({
-    destId: 'greece',
-    selectedPackage: { id: 'gr1', name: 'Greek Islands', duration_days: 7, cities: ['Athens', 'Santorini'], highlights: ['Acropolis', 'Oia Sunset', 'Caldera Views', 'Black Sand Beach'], budgetTiers: [{ tier_name: 'Standard', price_per_day_inr: 7000 }] },
-    selectedTier: { tier_name: 'Standard', price_per_day_inr: 7000, total_inr: 49000 },
-    startDate: '2026-06-17',
-    destination: { name: 'Santorini', country: 'Greece', description: 'Santorini · Athens · Mykonos', type: 'Beach' },
-});
-console.log(JSON.stringify(mockTrip.stops, null, 2));
+const mock = require('./frontend/src/utils/mockPackageData.js');
+
+const pkg = {
+  id: 'k1', name: 'Kashmir Highlights', duration_days: 5, cities: ['Srinagar', 'Gulmarg'], highlights: ['Dal Lake Shikara', 'Meadows of Gulmarg', 'Pahalgam Valley']
+};
+const tier = {
+  tier_name: 'Standard', price_per_day_inr: 7000
+};
+const dest = { name: 'Kashmir', country: 'India' };
+
+try {
+  const trip = mock.generateMockTrip({
+    destId: 'kashmir',
+    selectedPackage: pkg,
+    selectedTier: tier,
+    startDate: '2024-05-15',
+    destination: dest
+  });
+  console.log('Success:', trip.stops.length, 'stops');
+} catch (e) {
+  console.error('Crash!', e);
+}

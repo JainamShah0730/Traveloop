@@ -206,7 +206,7 @@ function getHighlightsForStop(highlights, stopIndex, totalStops) {
  * Each day gets: breakfast, sightseeing blocks, lunch, dinner, hotel
  * Costs are distributed from the budget tier's per-day price.
  */
-function generateDayActivities(city, highlights, dayIndex, pricePerDay, tierName) {
+function generateDayActivities(city, highlights, dayIndex, pricePerDay, tierName, absoluteDayNumber = dayIndex + 1) {
   // Cost distribution based on tier
   const costSplit = {
     food_breakfast: Math.round(pricePerDay * 0.06),
@@ -231,7 +231,7 @@ function generateDayActivities(city, highlights, dayIndex, pricePerDay, tierName
     type: 'food',
     cost: costSplit.food_breakfast,
     duration_mins: 60,
-    notes: `Day ${dayIndex + 1} breakfast | Start: 08:00`,
+    notes: `Day ${absoluteDayNumber} breakfast | Start: 08:00`,
   });
 
   // 2. Morning sightseeing (09:30 - 12:00)
@@ -241,7 +241,7 @@ function generateDayActivities(city, highlights, dayIndex, pricePerDay, tierName
     type: 'sightseeing',
     cost: Math.round(costSplit.sightseeing * 0.6),
     duration_mins: 150,
-    notes: `Day ${dayIndex + 1} morning exploration | Start: 09:30`,
+    notes: `Day ${absoluteDayNumber} morning exploration | Start: 09:30`,
   });
 
   // 3. Lunch (12:30 - 13:30)
@@ -256,7 +256,7 @@ function generateDayActivities(city, highlights, dayIndex, pricePerDay, tierName
     type: 'food',
     cost: costSplit.food_lunch,
     duration_mins: 60,
-    notes: `Day ${dayIndex + 1} lunch | Start: 12:30`,
+    notes: `Day ${absoluteDayNumber} lunch | Start: 12:30`,
   });
 
   // 4. Afternoon sightseeing (14:00 - 16:30)
@@ -266,7 +266,7 @@ function generateDayActivities(city, highlights, dayIndex, pricePerDay, tierName
     type: 'sightseeing',
     cost: Math.round(costSplit.sightseeing * 0.4),
     duration_mins: 150,
-    notes: `Day ${dayIndex + 1} afternoon exploration | Start: 14:00`,
+    notes: `Day ${absoluteDayNumber} afternoon exploration | Start: 14:00`,
   });
 
   // 5. Local transport / transfers (17:00 - 17:30)
@@ -275,7 +275,7 @@ function generateDayActivities(city, highlights, dayIndex, pricePerDay, tierName
     type: 'transport',
     cost: costSplit.transport,
     duration_mins: 30,
-    notes: `Day ${dayIndex + 1} transport | Start: 17:00`,
+    notes: `Day ${absoluteDayNumber} transport | Start: 17:00`,
   });
 
   // 6. Dinner (19:00 - 20:30)
@@ -290,7 +290,7 @@ function generateDayActivities(city, highlights, dayIndex, pricePerDay, tierName
     type: 'food',
     cost: costSplit.food_dinner,
     duration_mins: 90,
-    notes: `Day ${dayIndex + 1} dinner | Start: 19:00`,
+    notes: `Day ${absoluteDayNumber} dinner | Start: 19:00`,
   });
 
   // 7. Hotel check-in / overnight (21:00)
@@ -304,7 +304,7 @@ function generateDayActivities(city, highlights, dayIndex, pricePerDay, tierName
     type: 'hotel',
     cost: costSplit.hotel,
     duration_mins: 480,
-    notes: `Day ${dayIndex + 1} accommodation | Check-in: 21:00`,
+    notes: `Day ${absoluteDayNumber} accommodation | Check-in: 21:00`,
   });
 
   return activities;
@@ -384,6 +384,8 @@ router.post('/trips/from-package', auth, async (req, res) => {
 
       // STEP 3 — Generate rich day-by-day activities for ALL stops in parallel
       const activityPromises = [];
+      let absoluteDayCounter = 1;
+
       stops.forEach((stop, stopIndex) => {
         const stopHighlights = getHighlightsForStop(pkg.highlights, stopIndex, stops.length);
         const cityDays = stopIndex === lastIndex ? daysPerCity + remainingDays : daysPerCity;
@@ -394,7 +396,8 @@ router.post('/trips/from-package', auth, async (req, res) => {
             stopHighlights,
             dayIdx,
             tier.price_per_day_inr,
-            tier.tier_name
+            tier.tier_name,
+            absoluteDayCounter
           );
 
           dayActivities.forEach(act => {
@@ -411,6 +414,8 @@ router.post('/trips/from-package', auth, async (req, res) => {
               })
             );
           });
+          
+          absoluteDayCounter++;
         }
       });
       await Promise.all(activityPromises);
@@ -479,6 +484,8 @@ router.post('/trips/:id/regenerate-activities', auth, async (req, res) => {
 
     // Regenerate activities for each stop
     const activityPromises = [];
+    let absoluteDayCounter = 1;
+
     trip.stops.forEach((stop) => {
       const fromDate = new Date(stop.from_date);
       const toDate = new Date(stop.to_date);
@@ -500,7 +507,8 @@ router.post('/trips/:id/regenerate-activities', auth, async (req, res) => {
           highlights,
           dayIdx,
           pricePerDay,
-          tierLabel
+          tierLabel,
+          absoluteDayCounter
         );
 
         dayActivities.forEach(act => {
@@ -517,6 +525,8 @@ router.post('/trips/:id/regenerate-activities', auth, async (req, res) => {
             })
           );
         });
+        
+        absoluteDayCounter++;
       }
     });
 
@@ -535,6 +545,395 @@ router.post('/trips/:id/regenerate-activities', auth, async (req, res) => {
 
     return res.status(200).json({ success: true, trip: fullTrip });
 
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// 6. GET /api/packages
+router.get('/packages', async (req, res) => {
+  try {
+    const { featured, region, duration, maxBudget, source, style } = req.query;
+    
+    let whereClause = {};
+    if (featured === 'true') whereClause.isFeatured = true;
+    if (region) whereClause.region = region;
+    if (source) whereClause.source = source;
+    // Duration: map '3', '5', '7', '10' filters roughly
+    if (duration) {
+      if (duration === '10') {
+        whereClause.duration_days = { gte: 10 };
+      } else {
+        whereClause.duration_days = parseInt(duration);
+      }
+    }
+    
+    const packages = await prisma.travelPackage.findMany({
+      where: whereClause,
+      orderBy: featured === 'true' ? { id: 'desc' } : { id: 'desc' },
+      include: {
+        destination: true,
+        budgetTiers: true
+      }
+    });
+
+    // Post-filter by maxBudget and style if needed
+    let filtered = packages;
+    if (maxBudget) {
+      const budgetLimit = parseInt(maxBudget);
+      filtered = filtered.filter(pkg => {
+        const minTierPrice = Math.min(...pkg.budgetTiers.map(t => t.total_inr));
+        return minTierPrice <= budgetLimit || (pkg.budgetTiers.length === 0);
+      });
+    }
+
+    if (style) {
+      filtered = filtered.filter(pkg => 
+        pkg.highlights.some(h => h.toLowerCase().includes(style.toLowerCase())) ||
+        pkg.tagline.toLowerCase().includes(style.toLowerCase())
+      );
+    }
+
+    res.json({ data: filtered });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// 7. GET /api/packages/community
+router.get('/packages/community', async (req, res) => {
+  try {
+    const itineraries = await prisma.aiItinerary.findMany({
+      where: { isShared: true },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        user: { select: { id: true, name: true, avatar_url: true } }
+      }
+    });
+
+    const data = itineraries.map(it => {
+      let preview = {};
+      if (typeof it.data === 'string') preview = JSON.parse(it.data);
+      else preview = it.data;
+
+      return {
+        id: it.id,
+        destination: it.destination,
+        duration_days: it.duration,
+        budget: it.budget,
+        user: it.user,
+        highlights: preview.days?.slice(0,2).map(d => d.title || d.day) || [],
+      };
+    });
+
+    res.json({ data });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// 8. POST /api/packages/use-community/:itineraryId
+router.post('/packages/use-community/:itineraryId', auth, async (req, res) => {
+  try {
+    const { itineraryId } = req.params;
+    
+    const original = await prisma.aiItinerary.findUnique({
+      where: { id: itineraryId }
+    });
+
+    if (!original) {
+      return res.status(404).json({ error: 'Itinerary not found' });
+    }
+
+    // Create a new itinerary for the caller
+    const cloned = await prisma.aiItinerary.create({
+      data: {
+        userId: req.user.id,
+        destination: original.destination,
+        budget: original.budget,
+        duration: original.duration,
+        data: original.data,
+        isShared: false
+      }
+    });
+
+    // Mock tripId since full trip creation logic from itinerary is in another endpoint,
+    // or just return the cloned itinerary ID so the frontend can redirect
+    res.status(201).json({ success: true, tripId: cloned.id });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+
+// 10. POST /api/packages/save-from-copilot
+// auth but only admin? We won't strictly check admin here as per user note for testing
+router.post('/packages/save-from-copilot', auth, async (req, res) => {
+  try {
+    const { aiItineraryId, title, coverPhoto, highlights, isFeatured, region } = req.body;
+    
+    const itinerary = await prisma.aiItinerary.findUnique({
+      where: { id: aiItineraryId }
+    });
+
+    if (!itinerary) {
+      return res.status(404).json({ error: 'Itinerary not found' });
+    }
+
+    // Parse copilotSeed from itinerary data if possible
+    let parsedData = itinerary.data;
+    if (typeof parsedData === 'string') parsedData = JSON.parse(parsedData);
+
+    const copilotSeed = {
+      destination: itinerary.destination,
+      duration: itinerary.duration,
+      budget: itinerary.budget,
+      // more info could be passed, this is a basic stub
+    };
+
+    // Need a destination record, or we just map it loosely. The schema requires destination_id.
+    // Let's see if destination exists, or create a dummy one
+    let destRecord = await prisma.destination.findFirst({
+      where: { name: itinerary.destination }
+    });
+
+    if (!destRecord) {
+      destRecord = await prisma.destination.create({
+        data: {
+          name: itinerary.destination,
+          country: 'Unknown',
+          type: 'AI Generated',
+          description: 'AI Generated Destination',
+          cover_photo: coverPhoto
+        }
+      });
+    }
+
+    const newPackage = await prisma.travelPackage.create({
+      data: {
+        destination_id: destRecord.id,
+        name: title || `${itinerary.destination} AI Trip`,
+        duration_days: itinerary.duration,
+        tagline: 'AI Generated Trip',
+        cities_covered: [itinerary.destination],
+        highlights: highlights || [],
+        best_season: 'Any',
+        source: 'ai_promoted',
+        aiItineraryId: itinerary.id,
+        copilotSeed: copilotSeed,
+        isFeatured: isFeatured || false,
+        region: region || 'Unknown'
+      }
+    });
+
+    res.status(201).json({ success: true, packageId: newPackage.id, destination_id: destRecord.id });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// --- V2 ROUTES FOR PACKAGES PAGE REBUILD ---
+
+// 11. GET /api/packages/v2
+router.get('/packages/v2', async (req, res) => {
+  try {
+    const { featured, region, duration, maxBudget, style, limit = 12, cursor } = req.query;
+
+    const where = {
+      source: { in: ['manual', 'ai_promoted'] }
+    };
+
+    if (featured === 'true') where.isFeatured = true;
+    if (region) where.region = region;
+    if (duration) where.duration_days = parseInt(duration);
+    if (style) {
+      // Basic style filtering by tagline/highlights
+      where.OR = [
+        { tagline: { contains: style, mode: 'insensitive' } },
+        { highlights: { has: style } } // Exact match for array elements, fallback to JS filter if needed
+      ];
+    }
+
+    let packages = await prisma.travelPackage.findMany({
+      where,
+      orderBy: [
+        { isFeatured: 'desc' },
+        { id: 'desc' }
+      ],
+      take: parseInt(limit),
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+      include: {
+        destination: true,
+        budgetTiers: true
+      }
+    });
+
+    // Filter by max budget & style in JS due to complex relations / array limitations in Prisma
+    if (maxBudget || style) {
+      packages = packages.filter(pkg => {
+        let match = true;
+        if (maxBudget) {
+          const budgetLimit = parseInt(maxBudget);
+          const minTierPrice = pkg.budgetTiers.length > 0 ? Math.min(...pkg.budgetTiers.map(t => t.total_inr)) : 0;
+          if (minTierPrice > budgetLimit) match = false;
+        }
+        if (style && !where.OR) {
+          // If Prisma OR didn't catch it
+          const styleLower = style.toLowerCase();
+          const styleMatch = pkg.tagline.toLowerCase().includes(styleLower) || pkg.highlights.some(h => h.toLowerCase().includes(styleLower));
+          if (!styleMatch) match = false;
+        }
+        return match;
+      });
+    }
+
+    // Map to required lean structure
+    const leanPackages = packages.map(pkg => {
+      const minTierPrice = pkg.budgetTiers.length > 0 ? Math.min(...pkg.budgetTiers.map(t => t.total_inr)) : 0;
+      return {
+        id: pkg.id,
+        title: pkg.name,
+        destinationId: pkg.destination_id,
+        destination: pkg.destination.name,
+        country: pkg.destination.country,
+        region: pkg.region,
+        duration: pkg.duration_days,
+        pricePerPerson: minTierPrice,
+        currency: "INR",
+        travelStyle: pkg.tagline,
+        source: pkg.source,
+        isFeatured: pkg.isFeatured,
+        highlights: pkg.highlights,
+        coverPhoto: pkg.destination.cover_photo,
+        description: pkg.destination.description
+      };
+    });
+
+    res.json({ packages: leanPackages, nextCursor: leanPackages[leanPackages.length - 1]?.id || null });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// 12. GET /api/packages/v2/:id
+router.get('/packages/v2/:id', async (req, res) => {
+  try {
+    const pkg = await prisma.travelPackage.findUnique({
+      where: { id: req.params.id },
+      include: { destination: true, budgetTiers: true }
+    });
+    if (!pkg) return res.status(404).json({ error: 'Package not found' });
+    
+    // Map to expected structure
+    const minTierPrice = pkg.budgetTiers.length > 0 ? Math.min(...pkg.budgetTiers.map(t => t.total_inr)) : 0;
+    res.json({
+        id: pkg.id,
+        title: pkg.name,
+        destination: pkg.destination.name,
+        country: pkg.destination.country,
+        region: pkg.region,
+        duration: pkg.duration_days,
+        pricePerPerson: minTierPrice,
+        currency: "INR",
+        travelStyle: pkg.tagline,
+        source: pkg.source,
+        isFeatured: pkg.isFeatured,
+        highlights: pkg.highlights,
+        coverPhoto: pkg.destination.cover_photo,
+        description: pkg.destination.description,
+        copilotSeed: pkg.copilotSeed
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// 13. GET /api/packages/community/list
+router.get('/packages/community/list', async (req, res) => {
+  try {
+    const { limit = 12, cursor } = req.query;
+
+    const itineraries = await prisma.aiItinerary.findMany({
+      where: { isShared: true },
+      orderBy: { createdAt: 'desc' },
+      take: parseInt(limit),
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+      select: {
+        id: true, destination: true, budget: true, duration: true,
+        createdAt: true,
+        data: true,
+        user: { select: { id: true, name: true, avatar_url: true } }
+      }
+    });
+
+    const previews = itineraries.map(it => {
+      let previewData = {};
+      if (typeof it.data === 'string') previewData = JSON.parse(it.data);
+      else previewData = it.data;
+
+      return {
+        id: it.id,
+        destination: it.destination,
+        budget: it.budget,
+        duration: it.duration,
+        createdAt: it.createdAt,
+        user: it.user,
+        dayPreviews: previewData.days?.slice(0, 2).map(d => d.title || d.day) || []
+      };
+    });
+
+    res.json({ itineraries: previews, nextCursor: previews[previews.length - 1]?.id || null });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// 14. POST /api/packages/community/use/:itineraryId (Alias)
+router.post('/packages/community/use/:itineraryId', auth, async (req, res) => {
+  try {
+    const source = await prisma.aiItinerary.findUnique({
+      where: { id: req.params.itineraryId }
+    });
+    if (!source) return res.status(404).json({ error: 'Itinerary not found' });
+
+    const copy = await prisma.aiItinerary.create({
+      data: {
+        userId: req.user.id,
+        destination: source.destination,
+        budget: source.budget,
+        duration: source.duration,
+        data: source.data,
+        isShared: false
+      }
+    });
+
+    res.json({ success: true, itinerary: copy });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// 9. GET /api/packages/:id
+router.get('/packages/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const pkg = await prisma.travelPackage.findUnique({
+      where: { id },
+      include: { destination: true, budgetTiers: true }
+    });
+
+    if (!pkg) return res.status(404).json({ error: 'Package not found' });
+    
+    res.json({ data: pkg });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Internal server error' });

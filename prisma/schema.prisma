@@ -41,6 +41,16 @@ model User {
   trips         Trip[]
   collaborators Collaborator[]
   budgets       Budget[]
+  price_alerts  PriceAlert[]
+
+  // Wave 1 relations
+  aiItineraries      AiItinerary[]
+  votes              Vote[]
+  expensesPaid       Expense[]
+  expenseShares      ExpenseParticipant[]
+  journals           Journal[]
+  journalLikes       JournalLike[]
+  journalComments    JournalComment[]
 
   @@map("users")
 }
@@ -62,6 +72,13 @@ model Trip {
   collaborators Collaborator[]
   packing_items PackingItem[]
   notes         Note[]
+
+  // Wave 1 relations
+  aiItineraries AiItinerary[]
+  polls         Poll[]
+  expenses      Expense[]
+  settlements   Settlement[]
+  journal       Journal?
 
   @@map("trips")
 }
@@ -183,6 +200,11 @@ model TravelPackage {
   highlights     String[]
   best_season    String
   budgetTiers    BudgetTier[]
+  source         String       @default("manual")
+  aiItineraryId  String?
+  copilotSeed    Json?
+  isFeatured     Boolean      @default(false)
+  region         String?
 
   @@map("travel_packages")
 }
@@ -204,3 +226,168 @@ model BudgetTier {
   @@map("budget_tiers")
 }
 
+model PriceAlert {
+  id            String    @id @default(cuid())
+  user_id       String
+  user          User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  alert_type    String    // 'flight' or 'hotel'
+  
+  // For flights
+  origin        String?   // IATA code
+  destination   String?   // IATA code
+  travel_date   DateTime?
+  
+  // For hotels
+  hotel_id      String?
+  checkin_date  DateTime?
+  checkout_date DateTime?
+  
+  // Pricing
+  current_price Float
+  target_price  Float
+  currency      String    @default("INR")
+  
+  // State
+  status        String    @default("active") // 'active', 'triggered', 'expired'
+  notify_email  String
+  created_at    DateTime  @default(now())
+  triggered_at  DateTime?
+
+  @@map("price_alerts")
+}
+
+// ──────────────────────────────────────────────
+// WAVE 1 MODELS
+// ──────────────────────────────────────────────
+
+// --- 1A: AI Copilot ---
+model AiItinerary {
+  id          String   @id @default(cuid())
+  userId      String
+  tripId      String?
+  destination String
+  budget      Float
+  duration    Int
+  data           Json     // full JSON response from Claude
+  isShared       Boolean  @default(false)
+  selectedFlight Json?
+  selectedHotel  Json?
+  createdAt      DateTime @default(now())
+  user           User     @relation(fields: [userId], references: [id])
+  trip           Trip?    @relation(fields: [tripId], references: [id])
+}
+
+// --- 1B: Group Voting ---
+model Poll {
+  id        String   @id @default(cuid())
+  tripId    String
+  createdBy String
+  question  String
+  type      String   // 'destination' | 'hotel' | 'activity' | 'date' | 'custom'
+  status    String   @default("open")  // 'open' | 'closed'
+  options   PollOption[]
+  votes     Vote[]
+  createdAt DateTime @default(now())
+  trip      Trip     @relation(fields: [tripId], references: [id])
+}
+
+model PollOption {
+  id     String @id @default(cuid())
+  pollId String
+  label  String
+  votes  Vote[]
+  poll   Poll   @relation(fields: [pollId], references: [id])
+}
+
+model Vote {
+  id       String     @id @default(cuid())
+  pollId   String
+  optionId String
+  userId   String
+  poll     Poll       @relation(fields: [pollId], references: [id])
+  option   PollOption @relation(fields: [optionId], references: [id])
+  user     User       @relation(fields: [userId], references: [id])
+  @@unique([pollId, userId])  // one vote per user per poll
+}
+
+// --- 1C: Expense Splitting ---
+model Expense {
+  id           String               @id @default(cuid())
+  tripId       String
+  title        String
+  amount       Float
+  currency     String               @default("INR")
+  paidById     String               // who actually paid
+  splitType    String               // 'equal' | 'percentage' | 'custom'
+  category     String               // 'hotel' | 'food' | 'transport' | 'activity' | 'other'
+  date         DateTime             @default(now())
+  participants ExpenseParticipant[]
+  trip         Trip                 @relation(fields: [tripId], references: [id])
+  paidBy       User                 @relation(fields: [paidById], references: [id])
+}
+
+model ExpenseParticipant {
+  id        String  @id @default(cuid())
+  expenseId String
+  userId    String
+  share     Float   // amount this person owes
+  settled   Boolean @default(false)
+  expense   Expense @relation(fields: [expenseId], references: [id])
+  user      User    @relation(fields: [userId], references: [id])
+}
+
+model Settlement {
+  id         String   @id @default(cuid())
+  tripId     String
+  fromUserId String   // person who owes
+  toUserId   String   // person who is owed
+  amount     Float
+  settled    Boolean  @default(false)
+  settledAt  DateTime?
+  trip       Trip     @relation(fields: [tripId], references: [id])
+}
+
+// --- 1D: Travel Journal ---
+model Journal {
+  id          String         @id @default(cuid())
+  tripId      String         @unique
+  userId      String
+  title       String
+  story       String         // AI-generated trip narrative (long text)
+  isPublished Boolean        @default(false)
+  coverPhoto  String?
+  photos      JournalPhoto[]
+  likes       JournalLike[]
+  comments    JournalComment[]
+  createdAt   DateTime       @default(now())
+  trip        Trip           @relation(fields: [tripId], references: [id])
+  user        User           @relation(fields: [userId], references: [id])
+}
+
+model JournalPhoto {
+  id        String  @id @default(cuid())
+  journalId String
+  url       String
+  caption   String?
+  dayNumber Int?
+  journal   Journal @relation(fields: [journalId], references: [id])
+}
+
+model JournalLike {
+  id        String  @id @default(cuid())
+  journalId String
+  userId    String
+  journal   Journal @relation(fields: [journalId], references: [id])
+  user      User    @relation(fields: [userId], references: [id])
+  @@unique([journalId, userId])
+}
+
+model JournalComment {
+  id        String   @id @default(cuid())
+  journalId String
+  userId    String
+  text      String
+  createdAt DateTime @default(now())
+  journal   Journal  @relation(fields: [journalId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+}

@@ -42,6 +42,7 @@ import {
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { getCityImageUrl } from "../utils/cityImages";
+import ItineraryBuilder from "./ItineraryBuilder";
 
 function MapController({ activeStop }) {
   const map = useMap();
@@ -117,26 +118,40 @@ export default function TimelineView({
   const [activeTab, setActiveTab] = useState("timeline");
   const [expandedDays, setExpandedDays] = useState({});
 
-  const activeStop =
-    trip?.stops?.find((s) => s.id === activeStopId) ||
-    trip?.stops?.[0] ||
-    {};
+  const activeStop = trip?.stops?.[0] || {};
 
-  // BUG 3 FIX: Get a unique image URL for the active stop's city
+  // Get the city image for the first stop as the banner
   const cityImageUrl = useMemo(() => {
     return getCityImageUrl(activeStop?.city_name, activeStop?.country);
   }, [activeStop?.city_name, activeStop?.country]);
 
+  // Compute total trip duration
   const numDays = useMemo(() => {
-    if (!activeStop?.to_date || !activeStop?.from_date) return 1;
+    const start = trip?.start_date || trip?.startDate;
+    const end = trip?.end_date || trip?.endDate;
+    
+    if (!end || !start) {
+      if (!activeStop?.to_date || !activeStop?.from_date) return 1;
+      const diff = Math.ceil(
+        (new Date(activeStop.to_date) - new Date(activeStop.from_date)) /
+        (1000 * 60 * 60 * 24)
+      );
+      return Math.max(1, diff + 1);
+    }
     const diff = Math.ceil(
-      (new Date(activeStop.to_date) - new Date(activeStop.from_date)) /
+      (new Date(end) - new Date(start)) /
       (1000 * 60 * 60 * 24)
     );
-    return Math.max(1, diff);
-  }, [activeStop]);
+    return Math.max(1, diff + 1); // +1 because inclusive days
+  }, [trip, activeStop]);
 
-  const rawActivities = activeStop?.activities || [];
+  const rawActivities = useMemo(() => {
+    const acts = [];
+    (trip?.stops || []).forEach(stop => {
+      acts.push(...(stop.activities || []));
+    });
+    return acts;
+  }, [trip]);
 
   // Deduplicate by id — each activity appears exactly once
   const activities = useMemo(() => {
@@ -297,8 +312,8 @@ export default function TimelineView({
 
   if (!trip || !trip.stops || trip.stops.length === 0) {
     return (
-      <div className="bg-white rounded-3xl p-6">
-        <p>No stops added yet.</p>
+      <div className="w-full">
+        <ItineraryBuilder trip={trip} reloadTrip={reloadTrip} />
       </div>
     );
   }
@@ -317,7 +332,7 @@ export default function TimelineView({
   const defaultTimeSlots = ["08:00", "09:30", "11:00", "12:30", "14:00", "15:30", "17:00", "18:30", "19:30", "21:00"];
 
   return (
-    <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-100 h-full flex flex-col">
+    <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-100">
       {/* BUG 3 FIX: City-specific image banner — unique per stop */}
       <div className="mb-4 rounded-2xl overflow-hidden shadow-md border border-slate-100 h-40 flex-shrink-0 relative">
         <img
@@ -359,8 +374,8 @@ export default function TimelineView({
           style={{ height: "100%", width: "100%" }}
         >
           <TileLayer
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution="&copy; OpenStreetMap contributors"
+            url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
           />
           {trip?.stops?.map((stop, idx) => (
             <Marker
@@ -382,138 +397,184 @@ export default function TimelineView({
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 mb-6">
-        {[
-          { key: "timeline", label: "📅 Timeline", count: activities.length },
-          { key: "budget", label: "💰 Budget", count: null },
-        ].map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
-            className={`py-2.5 px-5 rounded-xl font-medium text-sm transition-all ${activeTab === tab.key
-                ? "bg-primary text-white shadow-md shadow-primary/20"
-                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-              }`}
-          >
-            {tab.label}
-            {tab.count !== null && (
-              <span className={`ml-1.5 text-xs ${activeTab === tab.key ? 'text-white/80' : 'text-slate-400'}`}>
-                ({tab.count})
-              </span>
-            )}
-          </button>
-        ))}
+      <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
+        <div className="flex gap-2">
+          {[
+            { key: "timeline", label: "📅 Timeline", count: activities.length },
+            { key: "budget", label: "💰 Budget", count: null },
+          ].map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`py-2.5 px-5 rounded-xl font-medium text-sm transition-all ${activeTab === tab.key
+                  ? "bg-primary text-white shadow-md shadow-primary/20"
+                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                }`}
+            >
+              {tab.label}
+              {tab.count !== null && (
+                <span className={`ml-1.5 text-xs ${activeTab === tab.key ? 'text-white/80' : 'text-slate-400'}`}>
+                  ({tab.count})
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* ═══════════════════════════════════════════ */}
-      {/* TIMELINE TAB — BUG 1+2 FIX: Per-day rendering */}
+      {/* TIMELINE TAB — Copilot Style Day Blocks   */}
       {/* ═══════════════════════════════════════════ */}
       {activeTab === "timeline" && (
-        <div className="space-y-4 overflow-y-auto flex-1 pr-1 pb-28 md:pb-4" style={{ maxHeight: '65vh' }}>
+        <div className="space-y-6 pr-1 pb-4">
           {groupedDays.map((dayGroup) => {
-            const isExpanded = expandedDays[dayGroup.dayNumber] !== false;
-            const dayDate = formatDate(activeStop.from_date, dayGroup.dayNumber - 1);
+            const tripStart = trip?.start_date || trip?.startDate || activeStop?.from_date;
+            const dayDate = formatDate(tripStart, dayGroup.dayNumber - 1);
             const dayTotal = dayGroup.acts.reduce((sum, a) => sum + (Number(a.cost) || 0), 0);
 
+            // Categorize activities for Copilot layout
+            const stayActs = dayGroup.acts.filter(a => a.type === 'hotel' || a.name.toLowerCase().includes('stay') || a.name.toLowerCase().includes('hotel'));
+            const mealActs = dayGroup.acts.filter(a => a.type === 'food' || a.name.toLowerCase().includes('meal') || a.name.toLowerCase().includes('restaurant'));
+            const timelineActs = dayGroup.acts.filter(a => !stayActs.includes(a) && !mealActs.includes(a));
+
+            const totalFoodCost = mealActs.reduce((sum, a) => sum + (Number(a.cost) || 0), 0);
+
             return (
-              <div key={dayGroup.dayNumber} className="border border-slate-100 rounded-2xl overflow-hidden">
-                {/* Day Header — shows day number, date, activity count, and day total */}
-                <button
-                  onClick={() => toggleDay(dayGroup.dayNumber)}
-                  className="w-full flex items-center justify-between p-4 bg-slate-50 hover:bg-slate-100 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center font-bold text-sm shadow-sm">
-                      {dayGroup.dayNumber}
+              <div key={dayGroup.dayNumber} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-2 h-full bg-indigo-100"></div>
+                <div className="pl-2">
+                  <div className="flex justify-between items-start mb-6">
+                    <div>
+                      <span className="text-sm font-bold text-indigo-600 tracking-wider uppercase mb-1 block">Day {dayGroup.dayNumber}</span>
+                      <h3 className="text-2xl font-serif text-slate-900">{dayDate}</h3>
                     </div>
-                    <div className="text-left">
-                      <h3 className="font-bold text-slate-800">Day {dayGroup.dayNumber}</h3>
-                      <p className="text-xs text-slate-500">{dayDate} · {dayGroup.acts.length} activities</p>
+                    <div className="text-right">
+                      <span className="text-lg font-medium text-slate-900">₹{dayTotal.toLocaleString("en-IN")}</span>
+                      <span className="block text-xs text-slate-500">Day budget</span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm font-semibold text-slate-600">
-                      ₹{dayTotal.toLocaleString("en-IN")}
-                    </span>
-                    {isExpanded
-                      ? <ChevronDown size={18} className="text-slate-400" />
-                      : <ChevronRight size={18} className="text-slate-400" />
-                    }
-                  </div>
-                </button>
 
-                {/* Day Activities — BUG 2 FIX: Only THIS day's activities appear here */}
-                {isExpanded && (
-                  <div className="p-4 space-y-3">
-                    {dayGroup.acts.length === 0 ? (
-                      <p className="text-slate-400 text-sm text-center py-4">No activities scheduled</p>
-                    ) : (
-                      dayGroup.acts.map((activity, actIdx) => {
-                        const Icon = categoryIcons[activity.type] || Info;
-                        const colors = categoryColors[activity.type] || categoryColors.other;
-                        // BUG 1 FIX: Use parsed time from notes for chronological ordering
-                        const timeStr = parseTimeFromNotes(activity.notes) || defaultTimeSlots[actIdx % defaultTimeSlots.length];
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      {timelineActs.length === 0 ? (
+                        <p className="text-slate-400 text-sm py-4 italic">No specific activities scheduled.</p>
+                      ) : (
+                        timelineActs.map((activity, actIdx) => {
+                          const Icon = categoryIcons[activity.type] || Info;
+                          const colors = categoryColors[activity.type] || categoryColors.other;
+                          const timeStr = parseTimeFromNotes(activity.notes) || defaultTimeSlots[actIdx % defaultTimeSlots.length];
+                          
+                          const borderColors = ['border-orange-200', 'border-blue-200', 'border-indigo-200', 'border-purple-200'];
+                          const borderClass = borderColors[actIdx % borderColors.length];
+                          const labelColors = ['text-orange-500', 'text-blue-500', 'text-indigo-500', 'text-purple-500'];
+                          const labelClass = labelColors[actIdx % labelColors.length];
+                          const labels = ['Morning', 'Afternoon', 'Evening', 'Night'];
+                          const timeLabel = labels[Math.min(actIdx, labels.length - 1)];
 
-                        return (
-                          <div
-                            key={activity.id}
-                            className={`flex gap-3 p-3 rounded-xl ${colors.bg} border ${colors.border} transition-all hover:shadow-sm group`}
-                          >
-                            {/* Time Column */}
-                            <div className="flex flex-col items-center gap-1 min-w-[52px]">
-                              <span className="text-xs font-bold text-slate-700 bg-white px-2 py-1 rounded-lg shadow-sm">
-                                {timeStr}
-                              </span>
-                              <div className="w-px flex-1 bg-slate-200 min-h-[20px]"></div>
-                            </div>
-
-                            {/* Activity Content */}
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-start justify-between gap-2">
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-semibold ${colors.badge}`}>
-                                      <Icon size={12} />
-                                      <span className="capitalize">{activity.type}</span>
-                                    </span>
-                                    <span className="text-xs text-slate-400">
-                                      {activity.duration_mins} min
-                                    </span>
-                                  </div>
-                                  <h4 className="font-semibold text-slate-800 text-sm truncate">
-                                    {activity.name}
-                                  </h4>
-                                </div>
-
-                                <div className="flex flex-col sm:flex-row sm:items-center items-end gap-1 sm:gap-2 flex-shrink-0">
+                          return (
+                            <div key={activity.id} className={`border-l-2 ${borderClass} pl-4 relative group`}>
+                              <div className="flex justify-between items-start mb-1">
+                                <span className={`text-xs font-semibold uppercase tracking-wider block ${labelClass}`}>
+                                  {timeLabel} <span className="text-slate-400 ml-1 opacity-70">({timeStr})</span>
+                                </span>
+                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                   <button
                                     onClick={() => togglePaid(activity.id)}
-                                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                                      activity.is_paid 
-                                        ? 'bg-emerald-100 text-emerald-700' 
-                                        : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
-                                    }`}
+                                    className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${activity.is_paid ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
                                   >
-                                    {activity.is_paid ? '✅ Paid' : 'Mark as Paid'}
+                                    {activity.is_paid ? '✅ Paid' : 'Mark Paid'}
                                   </button>
-                                  <span className="text-sm font-bold text-slate-700">
-                                    ₹{Number(activity.cost || 0).toLocaleString("en-IN")}
-                                  </span>
                                   <button
                                     onClick={() => handleDeleteActivity(activity.id)}
-                                    className="opacity-0 group-hover:opacity-100 text-rose-400 hover:text-rose-600 transition-all p-1 rounded-lg hover:bg-rose-50"
+                                    className="text-rose-400 hover:text-rose-600 p-0.5 rounded-md hover:bg-rose-50"
                                   >
                                     <Trash2 size={14} />
                                   </button>
                                 </div>
                               </div>
+                              <p className="text-slate-800 font-medium flex items-center gap-2">
+                                <Icon size={14} className={colors.text} />
+                                {activity.name}
+                              </p>
+                              <p className="text-sm text-slate-500 mt-1">
+                                ₹{Number(activity.cost || 0).toLocaleString("en-IN")} • {activity.duration_mins} min
+                                {activity.notes && !activity.notes.match(/^Day \d+$/i) && ` • ${activity.notes.replace(/Day \d+/ig, '').trim()}`}
+                              </p>
                             </div>
+                          );
+                        })
+                      )}
+                    </div>
+
+                    <div className="space-y-4 bg-slate-50 p-5 rounded-xl border border-slate-100 h-fit">
+                      {stayActs.length > 0 && (
+                        <div>
+                          <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-2">Stay</span>
+                          <div className="space-y-3">
+                            {stayActs.map(stay => (
+                              <div key={stay.id} className="group relative">
+                                <div className="flex justify-between items-start">
+                                  <p className="text-slate-800 font-medium flex items-center gap-2">
+                                    <Bed size={14} className="text-indigo-500" />
+                                    {stay.name}
+                                  </p>
+                                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button onClick={() => togglePaid(stay.id)} className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${stay.is_paid ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>
+                                      {stay.is_paid ? '✅' : 'Paid?'}
+                                    </button>
+                                    <button onClick={() => handleDeleteActivity(stay.id)} className="text-rose-400 hover:text-rose-600 p-0.5 rounded-md hover:bg-rose-50">
+                                      <Trash2 size={14} />
+                                    </button>
+                                  </div>
+                                </div>
+                                <p className="text-sm text-slate-500 mt-1">
+                                  ₹{Number(stay.cost || 0).toLocaleString("en-IN")} 
+                                  {stay.notes && !stay.notes.match(/^Day \d+$/i) && ` • ${stay.notes.replace(/Day \d+/ig, '').trim()}`}
+                                </p>
+                              </div>
+                            ))}
                           </div>
-                        );
-                      })
-                    )}
+                        </div>
+                      )}
+
+                      {(mealActs.length > 0 || totalFoodCost > 0) && (
+                        <div className={stayActs.length > 0 ? "pt-4 border-t border-slate-200" : ""}>
+                          <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-2">
+                            Meals (₹{totalFoodCost.toLocaleString("en-IN")})
+                          </span>
+                          <div className="space-y-3">
+                            {mealActs.map(meal => (
+                              <div key={meal.id} className="group relative">
+                                <div className="flex justify-between items-start">
+                                  <p className="text-sm text-slate-700 font-medium flex items-center gap-2">
+                                    <Utensils size={12} className="text-orange-500" />
+                                    {meal.name}
+                                  </p>
+                                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button onClick={() => togglePaid(meal.id)} className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${meal.is_paid ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>
+                                      {meal.is_paid ? '✅' : 'Paid?'}
+                                    </button>
+                                    <button onClick={() => handleDeleteActivity(meal.id)} className="text-rose-400 hover:text-rose-600 p-0.5 rounded-md hover:bg-rose-50">
+                                      <Trash2 size={14} />
+                                    </button>
+                                  </div>
+                                </div>
+                                <p className="text-xs text-slate-500 mt-1">
+                                  ₹{Number(meal.cost || 0).toLocaleString("en-IN")}
+                                  {meal.notes && !meal.notes.match(/^Day \d+$/i) && ` • ${meal.notes.replace(/Day \d+/ig, '').trim()}`}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {stayActs.length === 0 && mealActs.length === 0 && (
+                        <p className="text-sm text-slate-400 italic text-center py-2">No stay or meals scheduled for this day.</p>
+                      )}
+                    </div>
                   </div>
-                )}
+                </div>
               </div>
             );
           })}
@@ -597,7 +658,8 @@ export default function TimelineView({
             <div className="grid grid-cols-1 gap-2">
               {groupedDays.map((dayGroup) => {
                 const dayTotal = dayGroup.acts.reduce((sum, a) => sum + (Number(a.cost) || 0), 0);
-                const dayDate = formatDate(activeStop.from_date, dayGroup.dayNumber - 1);
+                const tripStart = trip?.start_date || trip?.startDate || activeStop?.from_date;
+                const dayDate = formatDate(tripStart, dayGroup.dayNumber - 1);
 
                 return (
                   <div key={dayGroup.dayNumber} className="flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-100">
@@ -645,6 +707,12 @@ export default function TimelineView({
           </div>
         </div>
       )}
+
+      {/* Render the ItineraryBuilder controls below the timeline/budget so users can add stops or regenerate */}
+      <div className="mt-8 border-t border-slate-100 pt-6">
+        <h3 className="text-lg font-bold text-slate-800 mb-4">Manage Itinerary</h3>
+        <ItineraryBuilder trip={trip} reloadTrip={reloadTrip} />
+      </div>
     </div>
   );
 }

@@ -4,6 +4,8 @@ import { ArrowLeft, ArrowRight, Check, Loader2, Bed, Utensils, Car, Calendar } f
 import { useItinerary } from '../context/ItineraryContext';
 import { generateMockTrip } from '../utils/mockPackageData';
 import { getCityImageUrl } from '../utils/cityImages';
+import FlexibleDatePicker from '../components/flights/FlexibleDatePicker';
+import WatchPriceButton from '../components/alerts/WatchPriceButton';
 
 // ─── Complete mock data with ALL fields the JSX expects ───────────────────────
 const MOCK_BUDGET_TIERS = {
@@ -196,7 +198,7 @@ export default function PackageBookingPage({ setCurrentScreen, setSelectedTripId
         // Fall back to mock if API failed or returned nothing useful
         if (!data || !data.packages) {
           console.warn('API unavailable — using mock data');
-          const mockKey = Object.keys(MOCK_DESTINATIONS).find(k => k === destId) || 'japan';
+          const mockKey = Object.keys(MOCK_DESTINATIONS).find(k => k.toLowerCase() === destId.toLowerCase()) || 'japan';
           data = JSON.parse(JSON.stringify(MOCK_DESTINATIONS[mockKey]));
           data.packages = data.packages.map(p => ({ ...p, is_mock: true }));
         }
@@ -279,42 +281,7 @@ export default function PackageBookingPage({ setCurrentScreen, setSelectedTripId
       const newTrip = await response.json();
       const tripId = newTrip.tripId ?? newTrip._id ?? newTrip.id;
 
-      // Ensure stops are saved individually for backwards compatibility with older backend instances
-      if (mockTrip.stops && mockTrip.stops.length > 0) {
-        for (const stop of mockTrip.stops) {
-          const stopRes = await fetch(`${API_BASE}/api/trips/${tripId}/stops`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-            body: JSON.stringify({
-              city_name: stop.city_name,
-              country: stop.country,
-              lat: stop.lat || 0,
-              lng: stop.lng || 0,
-              from_date: stop.from_date,
-              to_date: stop.to_date
-            })
-          });
-          
-          if (stopRes.ok) {
-            const newStop = await stopRes.json();
-            if (stop.activities && stop.activities.length > 0) {
-              for (const act of stop.activities) {
-                await fetch(`${API_BASE}/api/stops/${newStop.id}/activities`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                  body: JSON.stringify({
-                    name: act.name,
-                    type: act.type || 'other',
-                    cost: act.cost || 0,
-                    duration_mins: act.duration_mins || 60,
-                    notes: act.notes || ''
-                  })
-                });
-              }
-            }
-          }
-        }
-      }
+      // Backend now correctly handles nested creation. No need to manually create stops and activities one-by-one.
 
       // Update the parent App's selected trip so budget/invoice/notes/packing
       // all point to this newly created trip instead of the old one
@@ -385,21 +352,32 @@ export default function PackageBookingPage({ setCurrentScreen, setSelectedTripId
 
       {/* SECTION 1 — Selected package summary bar */}
       <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 w-full md:w-auto overflow-x-auto pb-2 md:pb-0">
           <Link
             to={`/destinations/${destId}`}
-            className="text-slate-500 hover:text-primary transition-colors flex items-center text-sm font-medium"
+            className="text-slate-500 hover:text-primary transition-colors flex items-center text-sm font-medium whitespace-nowrap"
           >
             <ArrowLeft size={16} className="mr-1" /> Change Package
           </Link>
-          <div className="h-4 w-px bg-slate-200" />
-          <div className="text-sm text-slate-600">
+          <div className="h-4 w-px bg-slate-200 hidden md:block" />
+          <div className="text-sm text-slate-600 flex items-center whitespace-nowrap">
             <span className="font-semibold text-slate-800">{destination.name}</span>
             <span className="mx-2">→</span>
             <span>{selectedPackage.name}</span>
             <span className="mx-2">→</span>
             <span className="font-medium text-primary">{selectedPackage.duration_days} Days</span>
           </div>
+        </div>
+        
+        {/* WatchPriceButton */}
+        <div className="flex-shrink-0">
+          <WatchPriceButton 
+            alertType="flight"
+            origin="DEL"
+            destination={destination.name}
+            currentPrice={selectedTier ? (selectedTier.total_inr || (selectedTier.price_per_day_inr * selectedPackage.duration_days)) : 10000}
+            travelDate={startDate || new Date().toISOString()}
+          />
         </div>
       </div>
 
@@ -516,6 +494,21 @@ export default function PackageBookingPage({ setCurrentScreen, setSelectedTripId
             <p className="font-semibold text-slate-700">{selectedTier?.tier_name || '—'}</p>
           </div>
         </div>
+        
+        {/* Flexible Date Picker Section */}
+        <div className="border-t border-slate-100 pt-6">
+          <h4 className="text-sm font-semibold text-slate-500 uppercase mb-4">Select your Dates</h4>
+          <FlexibleDatePicker 
+            origin="DEL" 
+            destination={destination.name} 
+            tripType="oneway" 
+            onSelectDates={(depart) => {
+              // Convert date to YYYY-MM-DD
+              const dateStr = depart.toISOString().split('T')[0];
+              setStartDate(dateStr);
+            }} 
+          />
+        </div>
 
         <div className="flex flex-col md:flex-row items-center justify-between border-t border-slate-100 pt-6 gap-4">
           <div>
@@ -526,14 +519,11 @@ export default function PackageBookingPage({ setCurrentScreen, setSelectedTripId
           <div className="flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto">
             <div className="flex flex-col w-full sm:w-auto">
               <label className="text-xs font-semibold text-slate-500 mb-1">Confirm Start Date</label>
-              <div className="flex items-center px-3 py-2 border border-slate-200 rounded-lg">
+              <div className="flex items-center px-3 py-2 border border-slate-200 rounded-lg bg-slate-50">
                 <Calendar size={16} className="text-slate-400 mr-2" />
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="outline-none text-sm text-slate-700 w-full"
-                />
+                <span className="text-sm text-slate-700 font-medium">
+                  {startDate ? new Date(startDate).toLocaleDateString() : 'Select a date above'}
+                </span>
               </div>
             </div>
 
@@ -560,6 +550,18 @@ export default function PackageBookingPage({ setCurrentScreen, setSelectedTripId
               ) : (
                 <>Select Package →</>
               )}
+            </button>
+
+            <button
+              onClick={() => {
+                const duration = selectedPackage.duration_days;
+                const budget = selectedTier ? (selectedTier.total_inr || selectedTier.price_per_day_inr * duration) : 30000;
+                navigate(`/copilot?destination=${encodeURIComponent(destination.name)}&duration=${duration}&budget=${budget}`);
+              }}
+              disabled={isCreating}
+              className="w-full md:w-auto px-6 py-3 rounded-xl font-medium flex items-center justify-center gap-2 transition-all active:scale-95 shadow-md bg-purple-100 text-purple-700 border border-purple-200 hover:bg-purple-200"
+            >
+              Customize with AI 🪄
             </button>
           </div>
         </div>

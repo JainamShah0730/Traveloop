@@ -1,7 +1,7 @@
 const http = require("http");
 const app = require("./app");
 const initSocket = require("./socket/index");
-
+require("./services/alertCron");
 const PORT = process.env.PORT || 3000;
 
 const httpServer = http.createServer(app);

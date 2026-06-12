@@ -247,6 +247,8 @@ export function generateMockTrip({ destId, selectedPackage, selectedTier, startD
     `Local markets`,
   ];
 
+  let globalDayIndex = 0;
+
   // ─── Generate stops with activities ─────────────────────────────────────────
   const stops = cities.map((city, stopIndex) => {
     const stopId = uid('stop');
@@ -278,12 +280,13 @@ export function generateMockTrip({ destId, selectedPackage, selectedTier, startD
       const dayActivities = generateDayActivities(
         city,
         stopHighlights,
-        dayIdx,
+        globalDayIndex,
         tier.price_per_day_inr || 7000,
         tier.tier_name || 'Standard'
       );
       // Each activity already has "Day X" in its notes (set by generateDayActivities)
       allActivities.push(...dayActivities);
+      globalDayIndex++;
     }
 
     // BUG 5 FIX: Calculate real budget from activity costs

@@ -21,6 +21,9 @@ import UserProfile from './components/UserProfile';
 import DiscoverPage from './pages/DiscoverPage';
 import DestinationPackagesPage from './pages/DestinationPackagesPage';
 import PackageBookingPage from './pages/PackageBookingPage';
+import TravelCopilotPage from './pages/TravelCopilotPage';
+import PackagesPage from './pages/PackagesPage';
+import TravelJournalView from './components/trips/TravelJournalView';
 import { Routes, Route } from 'react-router-dom';
 
 export default function App() {
@@ -65,6 +68,8 @@ export default function App() {
         return <PackingList tripId={selectedTripId} setCurrentScreen={setCurrentScreen} />;
       case 'notes':
         return <TravelNotes tripId={selectedTripId} setCurrentScreen={setCurrentScreen} />;
+      case 'journal':
+        return <TravelJournalView tripId={selectedTripId} setCurrentScreen={setCurrentScreen} />;
       case 'profile':
       case 'settings':
         return <UserProfile setUser={setUser} setCurrentScreen={setCurrentScreen} />;
@@ -74,6 +79,8 @@ export default function App() {
         return <MyTrips setCurrentScreen={setCurrentScreen} setSelectedTripId={setSelectedTripId} />;
       case 'createTrip':
         return <CreateTrip setCurrentScreen={setCurrentScreen} />;
+      case 'copilot':
+        return <TravelCopilotPage />;
       case 'discover':
         return <DiscoverPage setCurrentScreen={setCurrentScreen} setSelectedTripId={setSelectedTripId} />;
       default:
@@ -103,6 +110,7 @@ export default function App() {
           <div className="max-w-7xl mx-auto">
             <Routes>
               <Route path="/discover" element={<DiscoverPage setCurrentScreen={setCurrentScreen} setSelectedTripId={setSelectedTripId} />} />
+              <Route path="/packages" element={<PackagesPage />} />
               <Route path="/destinations/:id" element={<DestinationPackagesPage />} />
               <Route path="/destinations/:id/book" element={<PackageBookingPage setCurrentScreen={setCurrentScreen} setSelectedTripId={setSelectedTripId} />} />
               <Route path="/itinerary/:tripId" element={<BuilderScreen setCurrentScreen={setCurrentScreen} />} />

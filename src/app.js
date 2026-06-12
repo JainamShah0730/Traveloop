@@ -39,6 +39,13 @@ const notesRouter = require("./routes/notes");
 const adminRouter = require("./routes/admin");
 const dashboardRouter = require("./routes/dashboard");
 const packagesRouter = require("./routes/packages");
+const alertsRouter = require("./routes/alerts");
+const flightsRouter = require("./routes/flights");
+const destinationsRouter = require("./routes/destinations");
+const copilotRouter = require("./routes/copilot");
+const pollsRouter = require("./routes/polls");
+const expensesRouter = require("./routes/expenses");
+const journalsRouter = require("./routes/journals");
 
 const app = express();
 
@@ -80,7 +87,15 @@ app.use("/api/notes", notesRouter);
 app.use("/api/admin", adminRouter);
 app.use("/api/dashboard", dashboardRouter);
 app.use("/api", packagesRouter);
+app.use("/api/alerts", alertsRouter);
+app.use("/api/flights", flightsRouter);
+app.use("/api/destinations", destinationsRouter);
 app.use("/api/trips", sharingRouter);        // invite / collaborators / visibility / share-link
+app.use("/api/copilot", copilotRouter);
+app.use("/api/polls", pollsRouter);
+app.use("/api/expenses", expensesRouter);
+app.use("/api/journals", journalsRouter);
+
 app.use("/trips/public", (req, res, next) => {
   // Public routes are already defined in tripsRouter as /public/:slug
   // Forward to tripsRouter with adjusted path

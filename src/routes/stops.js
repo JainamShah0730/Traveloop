@@ -49,6 +49,60 @@ router.post("/:tripId/stops", auth, async (req, res) => {
   }
 });
 
+// POST /api/stops/:tripId/stops/ai — add stop with AI generated activities
+router.post("/:tripId/stops/ai", auth, async (req, res) => {
+  try {
+    const { allowed, trip } = await verifyTripAccess(req.params.tripId, req.user.id);
+    if (!trip) return res.status(404).json({ error: "Trip not found." });
+    if (!allowed) return res.status(403).json({ error: "Forbidden." });
+
+    const { city_name, country, lat, lng, from_date, to_date } = req.body;
+    if (!city_name || !country || lat == null || lng == null || !from_date || !to_date) {
+      return res.status(400).json({ error: "city_name, country, lat, lng, from_date, to_date required." });
+    }
+
+    const { generateItinerary } = require("../services/gemini");
+    const itineraryJson = await generateItinerary({
+      name: trip.name,
+      destination: city_name,
+      start_date: from_date,
+      end_date: to_date,
+      total_budget: 15000,
+      preferences: ["Top attractions", "Local food"]
+    });
+
+    const maxOrder = await prisma.stop.aggregate({
+      where: { trip_id: req.params.tripId },
+      _max: { order_index: true },
+    });
+    const order_index = (maxOrder._max.order_index ?? -1) + 1;
+
+    const stop = await prisma.stop.create({
+      data: {
+        trip_id: req.params.tripId,
+        city_name, country,
+        lat: parseFloat(lat), lng: parseFloat(lng),
+        from_date: new Date(from_date), to_date: new Date(to_date),
+        order_index,
+        activities: {
+          create: (Array.isArray(itineraryJson) ? itineraryJson : []).map(item => ({
+            name: item.notes || `Day ${item.day} in ${item.area}`,
+            type: "sightseeing", 
+            cost: Number(item.cost ?? item.estimated_budget) || 0,
+            duration_mins: parseInt(item.duration) || 120,
+            notes: `Day ${item.day} ${item.category || ''}`.trim()
+          }))
+        }
+      },
+      include: { activities: true }
+    });
+    return res.status(201).json(stop);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Internal server error." });
+  }
+});
+
 // PUT /api/stops/:id — update stop
 router.put("/:id", auth, async (req, res) => {
   try {

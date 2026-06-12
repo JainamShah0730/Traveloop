@@ -5,21 +5,21 @@
 
 // ── Verified LoremFlickr photo URLs ─────────────────────────────────────────────
 const DESTINATION_IMAGES = {
-  kashmir: 'https://loremflickr.com/800/600/kashmir,landscape/all',
-  goa: 'https://loremflickr.com/800/600/goa,beach/all',
-  rajasthan: 'https://loremflickr.com/800/600/rajasthan,palace/all',
-  himachal: 'https://loremflickr.com/800/600/himachal,mountains/all',
-  kerala: 'https://loremflickr.com/800/600/kerala,houseboat/all',
-  japan: 'https://loremflickr.com/800/600/japan,kyoto,temple/all',
-  italy: 'https://loremflickr.com/800/600/italy,rome,colosseum/all',
-  bali: 'https://loremflickr.com/800/600/bali,temple/all',
-  'new-york': 'https://loremflickr.com/800/600/newyork,manhattan/all',
-  paris: 'https://loremflickr.com/800/600/paris,eiffeltower/all',
-  thailand: 'https://loremflickr.com/800/600/thailand,temple/all',
-  dubai: 'https://loremflickr.com/800/600/dubai,skyline/all',
-  turkey: 'https://loremflickr.com/800/600/turkey,istanbul/all',
-  greece: 'https://loremflickr.com/800/600/greece,santorini/all',
-  london: 'https://loremflickr.com/800/600/london,bigben/all',
+  kashmir: 'https://picsum.photos/seed/kashmir/800/600',
+  goa: 'https://picsum.photos/seed/goa/800/600',
+  rajasthan: 'https://picsum.photos/seed/rajasthan/800/600',
+  himachal: 'https://picsum.photos/seed/himachal/800/600',
+  kerala: 'https://picsum.photos/seed/kerala/800/600',
+  japan: 'https://picsum.photos/seed/japan/800/600',
+  italy: 'https://picsum.photos/seed/italy/800/600',
+  bali: 'https://picsum.photos/seed/bali/800/600',
+  'new-york': 'https://picsum.photos/seed/newyork/800/600',
+  paris: 'https://picsum.photos/seed/paris/800/600',
+  thailand: 'https://picsum.photos/seed/thailand/800/600',
+  dubai: 'https://picsum.photos/seed/dubai/800/600',
+  turkey: 'https://picsum.photos/seed/turkey/800/600',
+  greece: 'https://picsum.photos/seed/greece/800/600',
+  london: 'https://picsum.photos/seed/london/800/600',
 };
 
 // ── City-level images (for stop cards) ───────────────────────────────────────
@@ -43,7 +43,7 @@ const CITY_IMAGES = {
   munnar: DESTINATION_IMAGES.kerala,
   alleppey: DESTINATION_IMAGES.kerala,
   kovalam: DESTINATION_IMAGES.kerala,
-  agra: 'https://loremflickr.com/800/600/tajmahal,india/all', // Taj Mahal
+  agra: 'https://picsum.photos/seed/agra/800/600', // Taj Mahal
 
   tokyo: DESTINATION_IMAGES.japan,
   kyoto: DESTINATION_IMAGES.japan,
@@ -91,7 +91,7 @@ const CITY_IMAGES = {
  * Get the hero/cover image for a destination by its route ID (e.g. 'kashmir', 'goa', 'japan')
  */
 export function getDestinationImage(destId) {
-  return DESTINATION_IMAGES[destId] || `https://loremflickr.com/800/600/${destId},landscape/all`;
+  return DESTINATION_IMAGES[destId] || `https://picsum.photos/seed/${destId}/800/600`;
 }
 
 /**
@@ -110,7 +110,7 @@ export function getCityImageUrl(cityName, country = '') {
 
   // Fallback
   const seed = encodeURIComponent(key);
-  return `https://loremflickr.com/800/600/${seed},city/all`;
+  return `https://picsum.photos/seed/${seed}/800/600`;
 }
 
 /**

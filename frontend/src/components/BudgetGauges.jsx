@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Loader2, ArrowLeft } from 'lucide-react';
+import ExpenseSplitter from './trips/ExpenseSplitter';
 
 const categoryConfig = {
   transport: { name: 'Transport', color: 'bg-blue-500' },
@@ -142,6 +143,10 @@ export default function BudgetGauges({ tripId, setCurrentScreen }) {
             })}
           </div>
         )}
+      </div>
+
+      <div className="max-w-3xl mx-auto mt-8">
+        <ExpenseSplitter tripId={tripId} />
       </div>
     </div>
   );

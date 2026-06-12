@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react';
-import { Calendar, MapPin, Plus, Loader2, Compass, Trash2, IndianRupee, ArrowRight } from 'lucide-react';
+import { Calendar, MapPin, Plus, Loader2, Compass, Trash2, IndianRupee, ArrowRight, Bell, Share2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import PriceAlertsTab from './alerts/PriceAlertsTab';
+import ShareTripModal from './trips/ShareTripModal';
 
 export default function MyTrips({ setCurrentScreen, setSelectedTripId }) {
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('upcoming'); // 'upcoming' or 'completed'
+  const [tripToShare, setTripToShare] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -96,7 +99,7 @@ export default function MyTrips({ setCurrentScreen, setSelectedTripId }) {
       badgeColor = "bg-emerald-100 text-emerald-800";
     }
 
-    const durationDays = Math.max(1, Math.ceil((end - start) / (1000 * 60 * 60 * 24)));
+    const durationDays = Math.max(1, Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1);
     const dateRange = `${start.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} – ${end.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`;
 
     return (
@@ -117,16 +120,28 @@ export default function MyTrips({ setCurrentScreen, setSelectedTripId }) {
             {statusBadge}
           </div>
 
-          <button 
-            onClick={(e) => {
-              e.stopPropagation();
-              handleDeleteTrip(trip.id);
-            }}
-            className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm p-2 rounded-full text-slate-400 hover:text-rose-500 shadow-sm transition-colors opacity-0 group-hover:opacity-100"
-            title="Delete Trip"
-          >
-            <Trash2 size={16} />
-          </button>
+          <div className="absolute top-4 right-4 flex gap-2">
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                setTripToShare(trip);
+              }}
+              className="bg-white/90 backdrop-blur-sm p-2 rounded-full text-slate-400 hover:text-blue-500 shadow-sm transition-colors opacity-0 group-hover:opacity-100"
+              title="Share Trip"
+            >
+              <Share2 size={16} />
+            </button>
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDeleteTrip(trip.id);
+              }}
+              className="bg-white/90 backdrop-blur-sm p-2 rounded-full text-slate-400 hover:text-rose-500 shadow-sm transition-colors opacity-0 group-hover:opacity-100"
+              title="Delete Trip"
+            >
+              <Trash2 size={16} />
+            </button>
+          </div>
         </div>
 
         <div className="p-5 flex-1 flex flex-col">
@@ -143,7 +158,7 @@ export default function MyTrips({ setCurrentScreen, setSelectedTripId }) {
             </div>
             <div className="flex items-center gap-2">
               <IndianRupee size={16} className="text-slate-400" />
-              <span>Total Budget: ₹{((trip.total_activities_cost > 0 ? trip.total_activities_cost : trip.total_budget) || 0).toLocaleString()}</span>
+              <span>Budget: ₹{(trip.total_budget || 0).toLocaleString()}</span>
             </div>
           </div>
 
@@ -201,6 +216,15 @@ export default function MyTrips({ setCurrentScreen, setSelectedTripId }) {
             <div className="absolute bottom-0 left-0 w-full h-0.5 bg-primary rounded-t-full"></div>
           )}
         </button>
+        <button
+          onClick={() => setActiveTab('alerts')}
+          className={`px-4 py-3 font-medium text-sm transition-colors relative flex items-center gap-2 ${activeTab === 'alerts' ? 'text-primary' : 'text-slate-500 hover:text-slate-700'}`}
+        >
+          <Bell size={16} /> Price Alerts
+          {activeTab === 'alerts' && (
+            <div className="absolute bottom-0 left-0 w-full h-0.5 bg-primary rounded-t-full"></div>
+          )}
+        </button>
       </div>
 
       {error && (
@@ -209,7 +233,9 @@ export default function MyTrips({ setCurrentScreen, setSelectedTripId }) {
         </div>
       )}
 
-      {displayedTrips.length === 0 && !error ? (
+      {activeTab === 'alerts' ? (
+        <PriceAlertsTab />
+      ) : displayedTrips.length === 0 && !error ? (
         <div className="bg-white rounded-3xl p-12 text-center border border-slate-100 shadow-sm flex flex-col items-center">
           <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-4">
             <Compass className="w-10 h-10 text-slate-400" />
@@ -238,6 +264,13 @@ export default function MyTrips({ setCurrentScreen, setSelectedTripId }) {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {displayedTrips.map(renderTripCard)}
         </div>
+      )}
+
+      {tripToShare && (
+        <ShareTripModal 
+          trip={tripToShare} 
+          onClose={() => setTripToShare(null)} 
+        />
       )}
     </div>
   );

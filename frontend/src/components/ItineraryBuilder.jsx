@@ -46,6 +46,52 @@ export default function ItineraryBuilder({
     return parsedDate.toLocaleDateString();
   };
 
+  // GENERATE AI STOP
+  const handleGenerateAIStop = async () => {
+    try {
+      if (!newStop.city_name.trim() || !newStop.country.trim() || !newStop.from_date || !newStop.to_date) {
+        alert("Please fill all fields");
+        return;
+      }
+      if (new Date(newStop.from_date) > new Date(newStop.to_date)) {
+        alert("From date cannot be after To date");
+        return;
+      }
+
+      setLoading(true);
+      const token = localStorage.getItem("token");
+      if (!token) {
+        alert("Please login again");
+        return;
+      }
+
+      const payload = {
+        ...newStop,
+        lat: 35.6762,
+        lng: 139.6503,
+      };
+
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/stops/${trip?.id}/stops/ai`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(payload),
+      });
+
+      let data = {};
+      try { data = await res.json(); } catch { data = {}; }
+      if (!res.ok) throw new Error(data.error || "Failed to generate AI stop");
+
+      setNewStop({ city_name: "", country: "", from_date: "", to_date: "" });
+      setIsAdding(false);
+      if (reloadTrip) await reloadTrip();
+    } catch (err) {
+      console.error(err);
+      alert(err.message || "Something went wrong");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // ADD STOP
   const handleAddStop = async () => {
     try {
@@ -257,7 +303,7 @@ export default function ItineraryBuilder({
       }
 
       const res = await fetch(
-        `${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://localhost:3000') + ''}/api/trips/${trip.id}/regenerate-activities`,
+        `${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://localhost:3000') + ''}/api/trips/${trip.id}/generate-itinerary`,
         {
           method: "POST",
           headers: {
@@ -265,8 +311,7 @@ export default function ItineraryBuilder({
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
-            price_per_day_inr: 5000,
-            tier_name: "Standard"
+            preferences: ["Top attractions", "Local culture", "Food"]
           })
         }
       );
@@ -350,140 +395,9 @@ export default function ItineraryBuilder({
   }
 
   return (
-    <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-100">
+    <div className="mt-8">
 
-      {/* HEADER */}
-      <div className="mb-8 flex justify-between items-start">
-        <div>
-          <h2 className="text-2xl font-serif font-bold text-slate-800 mb-2">
-            Build Your Journey
-          </h2>
 
-          <p className="text-slate-500">
-            Add stops and set duration for each location.
-          </p>
-        </div>
-        
-        {stops.length > 0 && (
-          <button
-            onClick={handleRegenerateItinerary}
-            disabled={isRegenerating}
-            className={`px-4 py-2 rounded-xl font-medium text-sm transition-all border ${
-              isRegenerating 
-                ? "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed" 
-                : "bg-indigo-50 text-indigo-600 border-indigo-200 hover:bg-indigo-100"
-            }`}
-          >
-            {isRegenerating ? "Regenerating..." : "✨ Regenerate AI Itinerary"}
-          </button>
-        )}
-      </div>
-
-      <div className="space-y-4 relative mt-6">
-
-        {/* CONNECTING LINE */}
-        {stops.length > 0 && (
-          <div className="absolute left-6 top-8 bottom-8 w-0.5 bg-slate-200"></div>
-        )}
-
-        {/* STOPS */}
-        {stops.map((stop, index) => {
-          const isActive = stop?.id === activeStopId;
-          // BUG 3 FIX: Each stop gets its own unique image based on city name
-          const stopImageUrl = getCityImageUrl(stop?.city_name, stop?.country);
-
-          return (
-            <div
-              key={stop?.id || index}
-              onClick={() =>
-                setActiveStopId &&
-                setActiveStopId(stop.id)
-              }
-              className={`relative flex items-center gap-4 p-4 rounded-2xl border transition-all cursor-pointer group ${isActive
-                  ? "bg-blue-50 border-blue-300 shadow-sm"
-                  : "bg-slate-50 border-slate-100 hover:border-blue-200 hover:bg-slate-100"
-                }`}
-            >
-
-              {/* NUMBER */}
-              <div
-                className={`z-10 flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center font-bold shadow-sm transition-colors ${isActive
-                    ? "bg-blue-600 text-white"
-                    : "bg-white text-slate-500 border border-slate-200"
-                  }`}
-              >
-                {String(index + 1).padStart(2, "0")}
-              </div>
-
-              {/* BUG 3 FIX: City-specific thumbnail image — unique per stop */}
-              <div className="flex-shrink-0 w-14 h-14 rounded-xl overflow-hidden border border-slate-200 shadow-sm">
-                <img
-                  src={stopImageUrl}
-                  alt={stop?.city_name || 'City'}
-                  className="w-full h-full object-cover"
-                  loading="lazy"
-                />
-              </div>
-
-              {/* CONTENT */}
-              <div className="flex-1 overflow-hidden">
-
-                <h3 className="font-bold text-lg flex items-center gap-2 text-slate-700 truncate">
-                  <MapPin
-                    size={18}
-                    className={
-                      isActive
-                        ? "text-blue-600"
-                        : "text-slate-400"
-                    }
-                  />
-
-                  <span className="truncate">
-                    {stop?.city_name || "Unknown Location"}
-                  </span>
-                </h3>
-
-                <p className="text-sm text-slate-500 mt-1 truncate">
-                  {stop?.country || 'Area'} • {stop?.activities?.[0]?.duration_mins ? `${stop?.activities?.[0]?.duration_mins} mins` : 'Duration'} • {stop?.activities?.[0]?.notes || 'Category'}
-                </p>
-                <div className="mt-2 flex items-center gap-3">
-                  <span className="px-2.5 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-md">
-                    ₹{stop?.activities?.[0]?.cost || stop?.budget || 0}
-                  </span>
-                  <p className="text-xs text-slate-400 flex items-center gap-1">
-                    <Calendar size={12} />
-                    {formatDate(stop?.from_date)}
-                  </p>
-                </div>
-              </div>
-
-              {/* ACTION BUTTONS */}
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    // Optional: individual regenerate logic here
-                    handleRegenerateItinerary(); 
-                  }}
-                  className="p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-xl transition-colors"
-                  title="Regenerate Stop"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21v-5h5"/></svg>
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDeleteStop(stop.id);
-                  }}
-                  className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-colors"
-                  title="Delete Stop"
-                >
-                  <Trash2 size={20} />
-                </button>
-              </div>
-            </div>
-          );
-        })}
 
         {/* ADD FORM */}
         {isAdding && (
@@ -551,7 +465,7 @@ export default function ItineraryBuilder({
             </div>
 
             {/* ACTIONS */}
-            <div className="flex gap-2 justify-end">
+            <div className="flex gap-2 justify-end flex-wrap mt-4">
 
               <button
                 onClick={() => {
@@ -570,16 +484,23 @@ export default function ItineraryBuilder({
               </button>
 
               <button
+                onClick={handleGenerateAIStop}
+                disabled={loading}
+                className="px-4 py-2 bg-purple-100 text-purple-700 hover:bg-purple-200 rounded-lg disabled:opacity-50 transition font-medium whitespace-nowrap"
+              >
+                {loading ? "Working..." : "✨ Generate AI"}
+              </button>
+
+              <button
                 onClick={handleAddStop}
                 disabled={loading}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg disabled:opacity-50 hover:bg-blue-700 transition"
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg disabled:opacity-50 hover:bg-blue-700 transition whitespace-nowrap"
               >
-                {loading ? "Saving..." : "Save Stop"}
+                {loading ? "Saving..." : "Save Manually"}
               </button>
             </div>
           </div>
         )}
-      </div>
 
       {/* ADD BUTTON */}
       {!isAdding && (
