@@ -8,8 +8,6 @@ export default function BottomNav({ currentScreen, setCurrentScreen }) {
     setCurrentScreen(screenId);
     if (screenId === 'packages') {
       navigate('/packages');
-    } else if (screenId === 'discover') {
-      navigate('/discover');
     } else {
       navigate('/');
     }

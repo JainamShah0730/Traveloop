@@ -1,7 +1,46 @@
-import { TrendingUp } from 'lucide-react';
+import { TrendingUp, Wallet } from 'lucide-react';
+import { useState, useEffect } from 'react';
 
 export default function FinancialHealthCard({ setCurrentScreen }) {
-  const percentage = 85;
+  const [percentage, setPercentage] = useState(0);
+  const [tripName, setTripName] = useState('your upcoming trips');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchTrips = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/trips`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (res.ok) {
+          const trips = await res.json();
+          const upcoming = trips
+            .filter(t => new Date(t.start_date) > new Date())
+            .sort((a, b) => new Date(a.start_date) - new Date(b.start_date))[0];
+
+          if (upcoming) {
+            setTripName(upcoming.name);
+            if (upcoming.total_budget > 0) {
+               let cost = upcoming.total_activities_cost || 0;
+               let pct = Math.round((cost / upcoming.total_budget) * 100);
+               if (pct > 100) pct = 100;
+               setPercentage(pct);
+            }
+          }
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchTrips();
+  }, []);
+
   const circumference = 2 * Math.PI * 40; // r=40
   const strokeDashoffset = circumference - (percentage / 100) * circumference;
 
@@ -16,10 +55,16 @@ export default function FinancialHealthCard({ setCurrentScreen }) {
 
       <div className="relative z-10 text-center md:text-left mb-6 md:mb-0">
         <h3 className="text-xl md:text-2xl font-serif font-bold mb-2">Financial Health</h3>
-        <p className="text-white/80 max-w-sm mb-4">You are on track with your saving goals for your upcoming trip.</p>
+        {loading ? (
+          <div className="h-4 bg-white/20 rounded w-48 animate-pulse mb-4"></div>
+        ) : (
+          <p className="text-white/80 max-w-sm mb-4">
+            You have allocated {percentage}% of the budget for {tripName}.
+          </p>
+        )}
         <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full text-sm font-medium">
-          <TrendingUp size={16} />
-          <span>+12% vs last month</span>
+          <Wallet size={16} />
+          <span>Keep your expenses tracked!</span>
         </div>
       </div>
 
@@ -46,13 +91,13 @@ export default function FinancialHealthCard({ setCurrentScreen }) {
             cy="64"
             style={{
               strokeDasharray: circumference,
-              strokeDashoffset: strokeDashoffset,
+              strokeDashoffset: loading ? circumference : strokeDashoffset,
             }}
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-3xl font-bold">{percentage}%</span>
-          <span className="text-[10px] uppercase tracking-wider text-white/80 font-semibold">Funded</span>
+          <span className="text-3xl font-bold">{loading ? '-' : percentage}%</span>
+          <span className="text-[10px] uppercase tracking-wider text-white/80 font-semibold">Budgeted</span>
         </div>
       </div>
     </div>

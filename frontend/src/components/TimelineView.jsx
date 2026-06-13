@@ -332,7 +332,7 @@ export default function TimelineView({
   const defaultTimeSlots = ["08:00", "09:30", "11:00", "12:30", "14:00", "15:30", "17:00", "18:30", "19:30", "21:00"];
 
   return (
-    <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-100">
+    <div className="bg-white rounded-3xl p-4 md:p-8 shadow-sm border border-slate-100">
       {/* BUG 3 FIX: City-specific image banner — unique per stop */}
       <div className="mb-4 rounded-2xl overflow-hidden shadow-md border border-slate-100 h-40 flex-shrink-0 relative">
         <img
@@ -440,9 +440,9 @@ export default function TimelineView({
             const totalFoodCost = mealActs.reduce((sum, a) => sum + (Number(a.cost) || 0), 0);
 
             return (
-              <div key={dayGroup.dayNumber} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 relative overflow-hidden">
+              <div key={dayGroup.dayNumber} className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-slate-100 relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-2 h-full bg-indigo-100"></div>
-                <div className="pl-2">
+                <div className="pl-2 md:pl-0">
                   <div className="flex justify-between items-start mb-6">
                     <div>
                       <span className="text-sm font-bold text-indigo-600 tracking-wider uppercase mb-1 block">Day {dayGroup.dayNumber}</span>
@@ -587,7 +587,7 @@ export default function TimelineView({
       {activeTab === "budget" && (
         <div className="space-y-6 overflow-y-auto flex-1 pr-1 pb-28 md:pb-4" style={{ maxHeight: '65vh' }}>
           {/* Total Budget Overview Card */}
-          <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-6 text-white">
+          <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-4 md:p-6 text-white">
             <div className="flex justify-between items-start mb-4">
               <div>
                 <p className="text-slate-400 text-xs font-medium uppercase tracking-wider mb-1">Trip Budget</p>
@@ -687,7 +687,7 @@ export default function TimelineView({
             <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3">
               Full Trip Summary
             </h3>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {trip?.stops?.map((stop) => {
                 const stopTotal = (stop.activities || []).reduce((sum, a) => sum + (Number(a.cost) || 0), 0);
                 const isActive = stop.id === activeStopId;

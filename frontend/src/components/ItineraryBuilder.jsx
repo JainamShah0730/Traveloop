@@ -337,8 +337,8 @@ export default function ItineraryBuilder({
 
   if (stops.length === 0 && !isAdding) {
     return (
-      <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-100">
-        <div className="bg-slate-50 p-6 md:p-8 rounded-3xl border border-slate-200 shadow-inner flex flex-col items-center text-center space-y-6">
+      <div className="bg-white rounded-3xl p-4 md:p-8 shadow-sm border border-slate-100">
+        <div className="bg-slate-50 p-4 md:p-8 rounded-3xl border border-slate-200 shadow-inner flex flex-col items-center text-center space-y-6">
           {isGeneratingAI ? (
             <div className="py-12 flex flex-col items-center">
               <div className="w-12 h-12 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin mb-4"></div>

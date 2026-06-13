@@ -31,6 +31,19 @@ router.post("/:id/invite", auth, async (req, res) => {
       data: { trip_id: req.params.id, user_id: invitee.id, role },
       include: { user: { select: { name: true, avatar_url: true } } },
     });
+
+    // Create Notification Note
+    await prisma.note.create({
+      data: {
+        trip_id: req.params.id,
+        title: "New Collaborator",
+        type: "system_alert",
+        content: `${invitee.name || invitee.email} has joined the trip as a ${role}!`,
+        has_reminder: true,
+        reminder_time: new Date()
+      }
+    });
+
     return res.status(201).json(collab);
   } catch (err) {
     console.error(err);

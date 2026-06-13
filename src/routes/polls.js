@@ -19,6 +19,19 @@ router.post("/", auth, async (req, res) => {
       },
       include: { options: true }
     });
+
+    // Create Notification Note
+    await prisma.note.create({
+      data: {
+        trip_id: tripId,
+        title: `New Poll: ${question}`,
+        type: "system_alert",
+        content: `${req.user.name || 'Someone'} created a new poll. Cast your vote!`,
+        has_reminder: true,
+        reminder_time: new Date()
+      }
+    });
+
     return res.status(201).json(poll);
   } catch (error) {
     console.error("Create poll error:", error);

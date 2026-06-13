@@ -1,6 +1,8 @@
 import { ArrowRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export default function DashboardHero({ setCurrentScreen }) {
+  const navigate = useNavigate();
   return (
     <div className="relative overflow-hidden rounded-3xl bg-slate-900 shadow-deep group">
       {/* Background Image with Overlay */}
@@ -21,7 +23,7 @@ export default function DashboardHero({ setCurrentScreen }) {
         </h1>
         
         <button 
-          onClick={() => setCurrentScreen('discover')}
+          onClick={() => { setCurrentScreen('packages'); navigate('/packages'); }}
           className="bg-secondary text-white px-8 py-4 rounded-full font-medium flex items-center space-x-3 shadow-puffy hover:bg-rose-600 hover:-translate-y-1 transition-all min-h-[44px]"
         >
           <span>Start Exploring</span>

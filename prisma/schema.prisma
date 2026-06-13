@@ -273,8 +273,8 @@ model AiItinerary {
   selectedFlight Json?
   selectedHotel  Json?
   createdAt      DateTime @default(now())
-  user           User     @relation(fields: [userId], references: [id])
-  trip           Trip?    @relation(fields: [tripId], references: [id])
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trip           Trip?    @relation(fields: [tripId], references: [id], onDelete: Cascade)
 }
 
 // --- 1B: Group Voting ---
@@ -288,7 +288,7 @@ model Poll {
   options   PollOption[]
   votes     Vote[]
   createdAt DateTime @default(now())
-  trip      Trip     @relation(fields: [tripId], references: [id])
+  trip      Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
 }
 
 model PollOption {
@@ -296,7 +296,7 @@ model PollOption {
   pollId String
   label  String
   votes  Vote[]
-  poll   Poll   @relation(fields: [pollId], references: [id])
+  poll   Poll   @relation(fields: [pollId], references: [id], onDelete: Cascade)
 }
 
 model Vote {
@@ -304,9 +304,9 @@ model Vote {
   pollId   String
   optionId String
   userId   String
-  poll     Poll       @relation(fields: [pollId], references: [id])
-  option   PollOption @relation(fields: [optionId], references: [id])
-  user     User       @relation(fields: [userId], references: [id])
+  poll     Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  option   PollOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  user     User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   @@unique([pollId, userId])  // one vote per user per poll
 }
 
@@ -322,8 +322,8 @@ model Expense {
   category     String               // 'hotel' | 'food' | 'transport' | 'activity' | 'other'
   date         DateTime             @default(now())
   participants ExpenseParticipant[]
-  trip         Trip                 @relation(fields: [tripId], references: [id])
-  paidBy       User                 @relation(fields: [paidById], references: [id])
+  trip         Trip                 @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  paidBy       User                 @relation(fields: [paidById], references: [id], onDelete: Cascade)
 }
 
 model ExpenseParticipant {
@@ -332,8 +332,8 @@ model ExpenseParticipant {
   userId    String
   share     Float   // amount this person owes
   settled   Boolean @default(false)
-  expense   Expense @relation(fields: [expenseId], references: [id])
-  user      User    @relation(fields: [userId], references: [id])
+  expense   Expense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Settlement {
@@ -344,7 +344,7 @@ model Settlement {
   amount     Float
   settled    Boolean  @default(false)
   settledAt  DateTime?
-  trip       Trip     @relation(fields: [tripId], references: [id])
+  trip       Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
 }
 
 // --- 1D: Travel Journal ---
@@ -360,8 +360,8 @@ model Journal {
   likes       JournalLike[]
   comments    JournalComment[]
   createdAt   DateTime       @default(now())
-  trip        Trip           @relation(fields: [tripId], references: [id])
-  user        User           @relation(fields: [userId], references: [id])
+  trip        Trip           @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model JournalPhoto {
@@ -370,15 +370,15 @@ model JournalPhoto {
   url       String
   caption   String?
   dayNumber Int?
-  journal   Journal @relation(fields: [journalId], references: [id])
+  journal   Journal @relation(fields: [journalId], references: [id], onDelete: Cascade)
 }
 
 model JournalLike {
   id        String  @id @default(cuid())
   journalId String
   userId    String
-  journal   Journal @relation(fields: [journalId], references: [id])
-  user      User    @relation(fields: [userId], references: [id])
+  journal   Journal @relation(fields: [journalId], references: [id], onDelete: Cascade)
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   @@unique([journalId, userId])
 }
 
@@ -388,6 +388,6 @@ model JournalComment {
   userId    String
   text      String
   createdAt DateTime @default(now())
-  journal   Journal  @relation(fields: [journalId], references: [id])
-  user      User     @relation(fields: [userId], references: [id])
+  journal   Journal  @relation(fields: [journalId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

@@ -31,6 +31,18 @@ router.post("/", auth, async (req, res) => {
       include: { participants: true, paidBy: true }
     });
     
+    // Create Notification Note
+    await prisma.note.create({
+      data: {
+        trip_id: tripId,
+        title: `New Expense: ${title}`,
+        type: "system_alert",
+        content: `${req.user.name || 'Someone'} added an expense of ${amount} ${currency || 'INR'} for ${category}.`,
+        has_reminder: true,
+        reminder_time: new Date()
+      }
+    });
+
     return res.status(201).json(expense);
   } catch (error) {
     console.error("Create expense error:", error);

@@ -136,77 +136,79 @@ export default function DiscoverPage() {
       </div>
 
       {/* Sticky Filter Bar */}
-      <div className="sticky top-0 z-30 bg-white border-b border-slate-100 shadow-sm p-4 space-y-4">
-        <div className="max-w-7xl mx-auto space-y-3">
-          {/* Row 1 — Duration */}
-          {/* FIX 5: Improve filter chip visual design */}
-          <div className="flex items-center gap-3 py-2">
-            <span className="text-sm font-semibold text-gray-500 w-16 md:w-20 flex-shrink-0">Duration:</span>
-            <div className="flex items-center gap-2 overflow-x-auto whitespace-nowrap pb-1 w-full" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-              {['All', '5 Days', '7 Days', '10 Days', '12 Days', '15 Days'].map(d => (
-                <button
-                  key={d}
-                  onClick={() => setSelectedDuration(d)}
-                  className={selectedDuration === d 
-                    ? "px-4 py-2 rounded-full bg-blue-600 text-white font-medium text-sm cursor-pointer transition-all duration-150 shadow-sm"
-                    : "px-4 py-2 rounded-full bg-white border border-gray-200 text-gray-600 font-medium text-sm cursor-pointer hover:border-blue-400 hover:text-blue-600 transition-all duration-150 shadow-sm"}
-                >
-                  {d}
-                </button>
-              ))}
+      <div className="relative md:sticky top-4 z-30 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
+        <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-5 space-y-4">
+          <div className="space-y-3">
+            {/* Row 1 — Duration */}
+            {/* FIX 5: Improve filter chip visual design */}
+            <div className="flex items-center gap-3 py-2">
+              <span className="text-sm font-semibold text-gray-500 w-16 md:w-20 flex-shrink-0">Duration:</span>
+              <div className="flex items-center gap-2 overflow-x-auto whitespace-nowrap pb-1 w-full" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                {['All', '5 Days', '7 Days', '10 Days', '12 Days', '15 Days'].map(d => (
+                  <button
+                    key={d}
+                    onClick={() => setSelectedDuration(d)}
+                    className={selectedDuration === d 
+                      ? "px-4 py-2 rounded-full bg-blue-600 text-white font-medium text-sm cursor-pointer transition-all duration-150 shadow-sm"
+                      : "px-4 py-2 rounded-full bg-white border border-gray-200 text-gray-600 font-medium text-sm cursor-pointer hover:border-blue-400 hover:text-blue-600 transition-all duration-150 shadow-sm"}
+                  >
+                    {d}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
 
-          {/* Row 2 — Vibe */}
-          <div className="flex items-center gap-3 py-2">
-            <span className="text-sm font-semibold text-gray-500 w-16 md:w-20 flex-shrink-0">Vibe:</span>
-            <div className="flex items-center gap-2 overflow-x-auto whitespace-nowrap pb-1 w-full" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-              {['Beach', 'Culture', 'Adventure', 'Luxury', 'Nature', 'Royal', 'Zen', 'Tropical', 'Urban', 'Historic'].map(v => (
-                <button
-                  key={v}
-                  onClick={() => handleVibeClick(v)}
-                  className={selectedVibes.includes(v)
-                    ? "px-4 py-2 rounded-full bg-blue-600 text-white font-medium text-sm cursor-pointer transition-all duration-150 shadow-sm"
-                    : "px-4 py-2 rounded-full bg-white border border-gray-200 text-gray-600 font-medium text-sm cursor-pointer hover:border-blue-400 hover:text-blue-600 transition-all duration-150 shadow-sm"}
-                >
-                  {v}
-                </button>
-              ))}
+            {/* Row 2 — Vibe */}
+            <div className="flex items-center gap-3 py-2">
+              <span className="text-sm font-semibold text-gray-500 w-16 md:w-20 flex-shrink-0">Vibe:</span>
+              <div className="flex items-center gap-2 overflow-x-auto whitespace-nowrap pb-1 w-full" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                {['Beach', 'Culture', 'Adventure', 'Luxury', 'Nature', 'Royal', 'Zen', 'Tropical', 'Urban', 'Historic'].map(v => (
+                  <button
+                    key={v}
+                    onClick={() => handleVibeClick(v)}
+                    className={selectedVibes.includes(v)
+                      ? "px-4 py-2 rounded-full bg-blue-600 text-white font-medium text-sm cursor-pointer transition-all duration-150 shadow-sm"
+                      : "px-4 py-2 rounded-full bg-white border border-gray-200 text-gray-600 font-medium text-sm cursor-pointer hover:border-blue-400 hover:text-blue-600 transition-all duration-150 shadow-sm"}
+                  >
+                    {v}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
 
-          {/* Row 3 — Region */}
-          <div className="flex items-center gap-3 py-2">
-            <span className="text-sm font-semibold text-gray-500 w-16 md:w-20 flex-shrink-0">Region:</span>
-            <div className="flex items-center gap-2 overflow-x-auto whitespace-nowrap pb-1 w-full" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-              {['All', 'India', 'Asia', 'Europe', 'Middle East', 'Americas'].map(r => (
-                <button
-                  key={r}
-                  onClick={() => setSelectedRegion(r)}
-                  className={selectedRegion === r
-                    ? "px-4 py-2 rounded-full bg-blue-600 text-white font-medium text-sm cursor-pointer transition-all duration-150 shadow-sm"
-                    : "px-4 py-2 rounded-full bg-white border border-gray-200 text-gray-600 font-medium text-sm cursor-pointer hover:border-blue-400 hover:text-blue-600 transition-all duration-150 shadow-sm"}
-                >
-                  {r}
-                </button>
-              ))}
+            {/* Row 3 — Region */}
+            <div className="flex items-center gap-3 py-2">
+              <span className="text-sm font-semibold text-gray-500 w-16 md:w-20 flex-shrink-0">Region:</span>
+              <div className="flex items-center gap-2 overflow-x-auto whitespace-nowrap pb-1 w-full" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                {['All', 'India', 'Asia', 'Europe', 'Middle East', 'Americas'].map(r => (
+                  <button
+                    key={r}
+                    onClick={() => setSelectedRegion(r)}
+                    className={selectedRegion === r
+                      ? "px-4 py-2 rounded-full bg-blue-600 text-white font-medium text-sm cursor-pointer transition-all duration-150 shadow-sm"
+                      : "px-4 py-2 rounded-full bg-white border border-gray-200 text-gray-600 font-medium text-sm cursor-pointer hover:border-blue-400 hover:text-blue-600 transition-all duration-150 shadow-sm"}
+                  >
+                    {r}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
 
-          {/* Info & Clear */}
-          <div className="flex justify-between items-center text-xs text-slate-500 pt-1">
-            <span>Showing {filteredDestinations.length} of {destinations.length} destinations</span>
-            {(selectedDuration !== 'All' || selectedVibes.length > 0 || selectedRegion !== 'All') && (
-              <button onClick={clearFilters} className="text-primary hover:underline font-medium">Clear filters</button>
-            )}
+            {/* Info & Clear */}
+            <div className="flex justify-between items-center text-xs text-slate-500 pt-1">
+              <span>Showing {filteredDestinations.length} of {destinations.length} destinations</span>
+              {(selectedDuration !== 'All' || selectedVibes.length > 0 || selectedRegion !== 'All') && (
+                <button onClick={clearFilters} className="text-primary hover:underline font-medium">Clear filters</button>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
       {/* Marquee Strip */}
-      <div className="relative overflow-hidden bg-white py-4 border-b border-slate-100">
-        <div className="absolute inset-y-0 left-0 w-20 bg-gradient-to-r from-white to-transparent z-10"></div>
-        <div className="absolute inset-y-0 right-0 w-20 bg-gradient-to-l from-white to-transparent z-10"></div>
+      <div className="relative overflow-hidden py-4 mb-4">
+        <div className="absolute inset-y-0 left-0 w-20 bg-gradient-to-r from-slate-50 to-transparent z-10"></div>
+        <div className="absolute inset-y-0 right-0 w-20 bg-gradient-to-l from-slate-50 to-transparent z-10"></div>
         
         <div className="animate-marquee gap-4">
           {[...MARQUEE_CHIPS, ...MARQUEE_CHIPS].map((chip, index) => {

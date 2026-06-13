@@ -51,8 +51,6 @@ export default function Sidebar({
       // "packages" has its own route, navigate to it directly
       if (screenId === "packages") {
         navigate("/packages");
-      } else if (screenId === "discover") {
-        navigate("/discover");
       } else {
         // Reset URL to root so the wildcard <Route path="*"> renders via currentScreen
         navigate("/");

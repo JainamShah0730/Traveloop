@@ -18,7 +18,7 @@ import InvoiceScreen from './components/InvoiceScreen';
 import PackingList from './components/PackingList';
 import TravelNotes from './components/TravelNotes';
 import UserProfile from './components/UserProfile';
-import DiscoverPage from './pages/DiscoverPage';
+
 import DestinationPackagesPage from './pages/DestinationPackagesPage';
 import PackageBookingPage from './pages/PackageBookingPage';
 import TravelCopilotPage from './pages/TravelCopilotPage';
@@ -81,8 +81,7 @@ export default function App() {
         return <CreateTrip setCurrentScreen={setCurrentScreen} />;
       case 'copilot':
         return <TravelCopilotPage />;
-      case 'discover':
-        return <DiscoverPage setCurrentScreen={setCurrentScreen} setSelectedTripId={setSelectedTripId} />;
+
       default:
         return <div className="p-8 text-center text-slate-500 font-sans">Screen "{currentScreen}" is under construction.</div>;
     }
@@ -109,11 +108,12 @@ export default function App() {
         <main className="flex-1 overflow-y-auto p-4 md:p-8 pb-24 md:pb-8">
           <div className="max-w-7xl mx-auto">
             <Routes>
-              <Route path="/discover" element={<DiscoverPage setCurrentScreen={setCurrentScreen} setSelectedTripId={setSelectedTripId} />} />
+              <Route path="/discover" element={<PackagesPage />} />
               <Route path="/packages" element={<PackagesPage />} />
               <Route path="/destinations/:id" element={<DestinationPackagesPage />} />
               <Route path="/destinations/:id/book" element={<PackageBookingPage setCurrentScreen={setCurrentScreen} setSelectedTripId={setSelectedTripId} />} />
               <Route path="/itinerary/:tripId" element={<BuilderScreen setCurrentScreen={setCurrentScreen} />} />
+              <Route path="/copilot" element={<TravelCopilotPage />} />
               <Route path="*" element={renderScreen()} />
             </Routes>
           </div>

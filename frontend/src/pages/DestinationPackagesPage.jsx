@@ -213,7 +213,7 @@ export default function DestinationPackagesPage() {
       <div className="max-w-7xl mx-auto p-4 md:p-8 text-center">
         <h3 className="text-xl font-bold text-slate-800 mb-2">Error loading data</h3>
         <p className="text-slate-500 mb-6">{error || 'Destination not found'}</p>
-        <Link to="/discover" className="text-primary hover:underline">← Back to destinations</Link>
+        <Link to="/packages" className="text-primary hover:underline">← Back to destinations</Link>
       </div>
     );
   }
@@ -229,7 +229,7 @@ export default function DestinationPackagesPage() {
           className="w-full h-full object-cover" 
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent flex flex-col justify-between p-6 md:p-8">
-          <Link to="/discover" className="self-start flex items-center text-white/80 hover:text-white transition-colors bg-black/20 backdrop-blur-sm px-4 py-2 rounded-xl text-sm font-medium">
+          <Link to="/packages" className="self-start flex items-center text-white/80 hover:text-white transition-colors bg-black/20 backdrop-blur-sm px-4 py-2 rounded-xl text-sm font-medium">
             <ArrowLeft size={16} className="mr-2" /> All Destinations
           </Link>
           

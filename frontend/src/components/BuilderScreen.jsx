@@ -103,7 +103,7 @@ export default function BuilderScreen({ tripId: propTripId, setCurrentScreen }) 
   return (
     <div className="flex flex-col h-[calc(100vh-6rem)] relative">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6 shrink-0">
+        <div className="flex flex-col mb-6 shrink-0">
           <div>
             <button 
               onClick={() => {
@@ -114,8 +114,8 @@ export default function BuilderScreen({ tripId: propTripId, setCurrentScreen }) 
             >
               <ArrowLeft size={16} className="mr-1" /> Back to My Trips
             </button>
-            <div className="flex items-center gap-4">
-            <h1 className="text-3xl font-serif font-bold text-slate-800">{trip.name}</h1>
+            <div className="flex items-center gap-2 md:gap-4 flex-wrap mt-2">
+            <h1 className="text-2xl md:text-3xl font-serif font-bold text-slate-800">{trip.name}</h1>
             {saveStatus && (
               <span className="text-sm font-medium text-slate-500 bg-slate-100 px-3 py-1 rounded-full flex items-center">
                 {saveStatus === 'Saving...' && <Loader2 size={12} className="animate-spin mr-2" />}
@@ -124,7 +124,7 @@ export default function BuilderScreen({ tripId: propTripId, setCurrentScreen }) 
             )}
             <button 
               onClick={() => setShowPolls(true)}
-              className="ml-4 flex items-center gap-2 bg-indigo-50 text-indigo-700 px-4 py-2 rounded-xl text-sm font-medium hover:bg-indigo-100 transition-colors"
+              className="flex items-center gap-2 bg-indigo-50 text-indigo-700 px-4 py-2 rounded-xl text-sm font-medium hover:bg-indigo-100 transition-colors"
             >
               <BarChart2 size={16} /> Group Polls
             </button>
@@ -133,7 +133,7 @@ export default function BuilderScreen({ tripId: propTripId, setCurrentScreen }) 
                 setCurrentScreen('journal');
                 navigate('/');
               }}
-              className="ml-2 flex items-center gap-2 bg-purple-50 text-purple-700 px-4 py-2 rounded-xl text-sm font-medium hover:bg-purple-100 transition-colors"
+              className="flex items-center gap-2 bg-purple-50 text-purple-700 px-4 py-2 rounded-xl text-sm font-medium hover:bg-purple-100 transition-colors"
             >
               📔 Journal
             </button>

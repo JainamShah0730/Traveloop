@@ -42,7 +42,7 @@ export default function CommunityCard({ itinerary }) {
   };
 
   return (
-    <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition-shadow flex flex-col h-full">
+    <div className="bg-white rounded-2xl p-4 md:p-5 border border-slate-100 shadow-sm hover:shadow-md transition-shadow flex flex-col h-full">
       {/* User Header */}
       <div className="flex items-center gap-3 mb-4">
         {itinerary.user?.avatar_url ? (

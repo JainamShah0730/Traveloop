@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import PackageCard from '../components/PackageCard';
 import CommunityCard from '../components/CommunityCard';
 
 export default function PackagesPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const searchFilter = searchParams.get('search') || '';
+  
   const [featuredPackages, setFeaturedPackages] = useState([]);
   const [isFeaturedFallback, setIsFeaturedFallback] = useState(false);
   const [aiPackages, setAiPackages] = useState([]);
@@ -44,8 +47,17 @@ export default function PackagesPage() {
       const res = await fetch(`${import.meta.env.VITE_API_URL}/api/packages/v2?${qs}`, { cache: "no-store" });
       if (res.ok) {
         const data = await res.json();
-        if (data.packages && data.packages.length > 0) {
-          setFeaturedPackages(data.packages);
+        let pkgs = data.packages || [];
+        if (searchFilter) {
+          const s = searchFilter.toLowerCase();
+          pkgs = pkgs.filter(p => 
+            (p.title && p.title.toLowerCase().includes(s)) || 
+            (p.destination?.name && p.destination.name.toLowerCase().includes(s)) || 
+            (p.country && p.country.toLowerCase().includes(s))
+          );
+        }
+        if (pkgs.length > 0) {
+          setFeaturedPackages(pkgs);
         } else if (hasActiveFilters) {
           // Fallback: Always provide prefeatured packages from our side if filters yield none
           const fallbackRes = await fetch(`${import.meta.env.VITE_API_URL}/api/packages/v2?featured=true&limit=12`, { cache: "no-store" });
@@ -74,7 +86,15 @@ export default function PackagesPage() {
       const res = await fetch(`${import.meta.env.VITE_API_URL}/api/packages/v2?${qs}`, { cache: "no-store" });
       if (res.ok) {
         const data = await res.json();
-        const newPkgs = data.packages.filter(p => !p.isFeatured); // Filter out featured from AI section
+        let newPkgs = data.packages.filter(p => !p.isFeatured); // Filter out featured from AI section
+        if (searchFilter) {
+          const s = searchFilter.toLowerCase();
+          newPkgs = newPkgs.filter(p => 
+            (p.title && p.title.toLowerCase().includes(s)) || 
+            (p.destination?.name && p.destination.name.toLowerCase().includes(s)) || 
+            (p.country && p.country.toLowerCase().includes(s))
+          );
+        }
         setAiPackages(prev => isLoadMore ? [...prev, ...newPkgs] : newPkgs);
         setAiCursor(data.nextCursor);
       }
@@ -110,8 +130,18 @@ export default function PackagesPage() {
                  if (regionLower === 'southeastasia' && !['bali', 'thailand', 'vietnam', 'bangkok', 'phuket'].some(x => destLower.includes(x))) match = false;
                  // Add more basic mappings as needed, but this prevents totally irrelevant results
               }
+              
+              if (searchFilter) {
+                const s = searchFilter.toLowerCase();
+                if (it.destination && !it.destination.toLowerCase().includes(s)) {
+                  match = false;
+                }
+              }
               return match;
            });
+        } else if (searchFilter) {
+           const s = searchFilter.toLowerCase();
+           itins = itins.filter(it => it.destination && it.destination.toLowerCase().includes(s));
         }
         setCommunityPicks(prev => isLoadMore ? [...prev, ...itins] : itins);
         setCommunityCursor(data.nextCursor);
@@ -126,10 +156,9 @@ export default function PackagesPage() {
   useEffect(() => {
     fetchFeatured();
     fetchAi();
-    // Community picks ignore filters, so we only fetch them on mount or if we want to reset
-    if (communityPicks.length === 0) fetchCommunity();
+    fetchCommunity();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters]);
+  }, [filters, searchFilter]);
 
   const SkeletonCard = ({ variant = 'grid' }) => (
     <div className={`bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-100 flex flex-col h-full ${variant === 'featured' ? 'w-[320px] sm:w-[400px] shrink-0' : 'w-full'}`}>
@@ -160,7 +189,7 @@ export default function PackagesPage() {
   return (
     <div className="w-full pb-20 bg-slate-50 min-h-screen relative">
       {/* Hero Section */}
-      <section className="relative h-[450px] flex items-center justify-center bg-slate-900 overflow-hidden">
+      <section className="relative h-[350px] md:h-[450px] flex items-center justify-center bg-slate-900 overflow-hidden">
         <div className="absolute inset-0">
           <img src="https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&w=2000&q=80" alt="Travel" className="w-full h-full object-cover opacity-50" />
         </div>
@@ -172,11 +201,11 @@ export default function PackagesPage() {
       </section>
 
       {/* Sticky Filter Bar */}
-      <div className="sticky top-0 z-50 flex justify-center w-full px-4 -mt-10 pb-4">
-        <div className="bg-white/30 backdrop-blur-2xl p-2 sm:p-4 rounded-2xl flex flex-wrap gap-3 justify-center items-center border border-white/40 shadow-2xl">
+      <div className="sticky top-0 z-50 w-full px-4 -mt-6 sm:-mt-8 pb-4 flex justify-center">
+        <div className="bg-white/40 backdrop-blur-xl p-2 rounded-full flex flex-nowrap overflow-x-auto hide-scrollbar gap-2 border border-white/50 shadow-xl max-w-full items-center">
           <select 
             value={filters.region} onChange={e => setFilters({...filters, region: e.target.value})}
-            className="bg-white/90 text-slate-800 rounded-xl px-4 py-2.5 outline-none cursor-pointer border-0 ring-2 ring-transparent focus:ring-indigo-500 font-medium shadow-sm"
+            className="flex-shrink-0 bg-white/95 text-slate-800 rounded-full px-4 py-2 outline-none cursor-pointer border border-transparent focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 font-medium shadow-sm text-sm transition-all"
           >
             <option value="">Any Region</option>
             <option value="India">India</option>
@@ -189,7 +218,7 @@ export default function PackagesPage() {
 
           <select 
             value={filters.duration} onChange={e => setFilters({...filters, duration: e.target.value})}
-            className="bg-white/90 text-slate-800 rounded-xl px-4 py-2.5 outline-none cursor-pointer border-0 ring-2 ring-transparent focus:ring-indigo-500 font-medium shadow-sm"
+            className="flex-shrink-0 bg-white/95 text-slate-800 rounded-full px-4 py-2 outline-none cursor-pointer border border-transparent focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 font-medium shadow-sm text-sm transition-all"
           >
             <option value="">Any Duration</option>
             <option value="3">3 Days</option>
@@ -200,7 +229,7 @@ export default function PackagesPage() {
 
           <select 
             value={filters.maxBudget} onChange={e => setFilters({...filters, maxBudget: e.target.value})}
-            className="bg-white/90 text-slate-800 rounded-xl px-4 py-2.5 outline-none cursor-pointer border-0 ring-2 ring-transparent focus:ring-indigo-500 font-medium shadow-sm"
+            className="flex-shrink-0 bg-white/95 text-slate-800 rounded-full px-4 py-2 outline-none cursor-pointer border border-transparent focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 font-medium shadow-sm text-sm transition-all"
           >
             <option value="">Any Budget</option>
             <option value="50000">Under ₹50,000</option>
@@ -211,7 +240,7 @@ export default function PackagesPage() {
 
           <select 
             value={filters.style} onChange={e => setFilters({...filters, style: e.target.value})}
-            className="bg-white/90 text-slate-800 rounded-xl px-4 py-2.5 outline-none cursor-pointer border-0 ring-2 ring-transparent focus:ring-indigo-500 font-medium shadow-sm"
+            className="flex-shrink-0 bg-white/95 text-slate-800 rounded-full px-4 py-2 outline-none cursor-pointer border border-transparent focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 font-medium shadow-sm text-sm transition-all"
           >
             <option value="">Any Style</option>
             <option value="relaxation">Beach & Relax</option>
@@ -225,9 +254,9 @@ export default function PackagesPage() {
           {hasActiveFilters && (
             <button 
               onClick={() => setFilters({region:'', duration:'', maxBudget:'', style:''})}
-              className="text-slate-800 bg-white/70 backdrop-blur rounded-xl px-4 py-2.5 text-sm font-bold hover:bg-white shadow-sm transition-colors"
+              className="flex-shrink-0 text-slate-800 bg-white/70 backdrop-blur rounded-full px-4 py-2 text-sm font-bold hover:bg-white shadow-sm transition-colors border border-slate-200 ml-1"
             >
-              Clear all
+              Clear
             </button>
           )}
         </div>

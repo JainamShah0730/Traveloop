@@ -12,7 +12,7 @@ export default function Header({ currentScreen, setCurrentScreen }) {
 
   const navItems = [
     { id: "dashboard", label: "Dashboard", icon: Home },
-    { id: "discover", label: "Packages", icon: Luggage },
+    { id: "packages", label: "Packages", icon: Luggage },
     { id: "myTrips", label: "My Trips", icon: Map },
     { id: "builder", label: "Itinerary", icon: Briefcase },
     { id: "community", label: "Community", icon: Users },
@@ -28,8 +28,8 @@ export default function Header({ currentScreen, setCurrentScreen }) {
     setIsMobileMenuOpen(false);
     if (!setCurrentScreen) return;
     setCurrentScreen(screenId);
-    if (screenId === "discover") {
-      navigate("/discover");
+    if (screenId === "packages") {
+      navigate("/packages");
     } else {
       navigate("/");
     }
@@ -130,6 +130,15 @@ export default function Header({ currentScreen, setCurrentScreen }) {
     }
   };
 
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const handleSearch = (e) => {
+    if (e.key === 'Enter' && searchQuery.trim()) {
+      if (setCurrentScreen) setCurrentScreen('packages');
+      navigate(`/packages?search=${encodeURIComponent(searchQuery.trim())}`);
+    }
+  };
+
   return (
     <header className="bg-white/80 backdrop-blur-md sticky top-0 z-40 border-b border-slate-200 px-4 md:px-6 py-4 flex items-center justify-between">
       <div className="flex items-center gap-3">
@@ -150,6 +159,9 @@ export default function Header({ currentScreen, setCurrentScreen }) {
           <input 
             type="text" 
             placeholder="Search anything..." 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={handleSearch}
             className="pl-10 pr-4 py-2 bg-slate-100 border-none rounded-full text-sm focus:ring-2 focus:ring-primary/20 outline-none w-64 min-h-[44px]"
           />
         </div>

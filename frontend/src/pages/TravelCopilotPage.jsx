@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import Header from '../components/Header';
 import TripGenerationWizard from '../components/copilot/TripGenerationWizard';
 import LoadingCopilot from '../components/copilot/LoadingCopilot';
 import ItineraryResultView from '../components/copilot/ItineraryResultView';
@@ -35,7 +34,6 @@ export default function TravelCopilotPage() {
 
   return (
     <div className="min-h-screen bg-[#FDFBF7]">
-      <Header />
       <main className="max-w-6xl mx-auto px-4 py-12">
         {!loading && !result && (
           <div className="text-center mb-12 animate-fade-in">

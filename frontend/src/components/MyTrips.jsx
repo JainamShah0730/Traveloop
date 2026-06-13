@@ -251,8 +251,8 @@ export default function MyTrips({ setCurrentScreen, setSelectedTripId }) {
           {activeTab === 'upcoming' && (
             <button 
               onClick={() => {
-                navigate('/discover');
-                setCurrentScreen('discover');
+                navigate('/packages');
+                setCurrentScreen('packages');
               }}
               className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-6 py-3 rounded-xl font-medium transition-colors"
             >
