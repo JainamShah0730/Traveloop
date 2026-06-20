@@ -27,11 +27,24 @@ router.get("/", auth, async (req, res) => {
       include: { stops: { include: { activities: { select: { cost: true } } } } },
       orderBy: { created_at: "desc" },
     });
+    const tripIds = trips.map(t => t.id);
+    const travelerCounts = await prisma.tripTraveler.groupBy({
+      by: ['tripId'],
+      where: { tripId: { in: tripIds } },
+      _count: { id: true }
+    });
+    
+    const countMap = {};
+    travelerCounts.forEach(c => {
+      if (c.tripId) countMap[c.tripId] = c._count.id;
+    });
+
     const result = trips.map((t) => {
       const stopsCount = t.stops.length;
-      const totalCost = t.stops.reduce((s, st) => s + st.activities.reduce((a, ac) => a + ac.cost, 0), 0);
+      const tCount = Math.max(1, countMap[t.id] || 1);
+      const totalCost = t.stops.reduce((s, st) => s + st.activities.reduce((a, ac) => a + ac.cost, 0), 0) * tCount;
       const { stops, ...data } = t;
-      return { ...data, stops_count: stopsCount, total_activities_cost: totalCost };
+      return { ...data, stops_count: stopsCount, total_activities_cost: totalCost, travelersCount: tCount };
     });
     return res.status(200).json(result);
   } catch (err) {
@@ -57,7 +70,7 @@ router.post("/", auth, async (req, res) => {
     let tripData = {
       user_id: req.user.id, name, cover_photo: cover_photo || null, 
       start_date: new Date(start_date), end_date: new Date(end_date), 
-      total_budget: total_budget || 0, slug, is_public: is_public || false 
+      total_budget: parseFloat(total_budget) || 0, slug, is_public: is_public || false 
     };
 
     console.log("RECEIVED STOPS LENGTH:", stops ? stops.length : 'undefined or null');
@@ -84,6 +97,37 @@ router.post("/", auth, async (req, res) => {
     const trip = await prisma.trip.create({
       data: tripData,
     });
+    
+    // Create travelers from travelersList or default
+    const travelersList = raw.travelersList || [];
+    if (travelersList.length > 0) {
+      for (const t of travelersList) {
+        await prisma.tripTraveler.create({
+          data: {
+            tripId: trip.id,
+            isOwner: t.isOwner || false,
+            name: t.name || 'Traveler',
+            email: t.email || '',
+            phone: t.phone || null,
+            age: t.age ? parseInt(t.age) : null,
+            mealPref: t.mealPref || null,
+            seatPref: t.seatPref || null
+          }
+        });
+      }
+    } else {
+      // Default owner
+      const user = await prisma.user.findUnique({ where: { id: req.user.id } });
+      await prisma.tripTraveler.create({
+        data: {
+          tripId: trip.id,
+          isOwner: true,
+          name: user ? user.name : 'You (Owner)',
+          email: user ? user.email : 'you@example.com'
+        }
+      });
+    }
+
     return res.status(201).json(trip);
   } catch (err) {
     console.error(err);
@@ -105,6 +149,10 @@ router.get("/:id", auth, async (req, res) => {
       },
     });
 
+    const travelersCount = await prisma.tripTraveler.count({
+      where: { tripId: req.params.id }
+    });
+
     const responseData = {
       ...full,
       tripId: full.id,
@@ -112,6 +160,7 @@ router.get("/:id", auth, async (req, res) => {
       destination: full.stops[0]?.city_name || 'Destination',
       startDate: full.start_date,
       endDate: full.end_date,
+      travelersCount: Math.max(1, travelersCount),
       stops: full.stops.map(stop => {
         const daysMap = {};
         stop.activities.forEach(act => {
@@ -288,18 +337,30 @@ router.get("/:id/budget", auth, async (req, res) => {
       where: { id: req.params.id },
       include: { stops: { include: { activities: true, budgets: true } } },
     });
+    const travelersCount = await prisma.tripTraveler.count({
+      where: { tripId: req.params.id }
+    });
+    const travelers = Math.max(1, travelersCount);
+
     let totalSpent = 0;
     const spentByStop = [];
     const catMap = {};
     for (const stop of full.stops) {
       let ss = 0;
-      for (const a of stop.activities) { ss += a.cost; catMap[a.type] = (catMap[a.type] || 0) + a.cost; }
-      for (const b of stop.budgets) { ss += b.amount; }
+      for (const a of stop.activities) { 
+        const cost = a.cost * travelers;
+        ss += cost; 
+        catMap[a.type] = (catMap[a.type] || 0) + cost; 
+      }
+      for (const b of stop.budgets) { 
+        // if budgets is also per person? Usually budgets isn't used much or is fixed
+        ss += b.amount; 
+      }
       totalSpent += ss;
       spentByStop.push({ stop_id: stop.id, city_name: stop.city_name, spent: ss });
     }
     const spentByCategory = Object.entries(catMap).map(([type, total]) => ({ type, total }));
-    const final_total_budget = full.total_budget || 0;
+    const final_total_budget = (full.total_budget || 0) * travelers;
     return res.status(200).json({ total_budget: final_total_budget, total_spent: totalSpent, spent_by_stop: spentByStop, spent_by_category: spentByCategory });
   } catch (err) {
     console.error(err);

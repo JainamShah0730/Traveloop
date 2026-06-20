@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import ItineraryResultView from './ItineraryResultView';
 import FlexibleDatePicker from '../shared/FlexibleDatePicker';
 import FlightHotelSelector from './FlightHotelSelector';
@@ -10,7 +10,7 @@ export default function TripGenerationWizard({ onSubmit }) {
     destination: '',
     duration: 5,
     budget: 30000,
-    travelers: 2,
+    travelers: 1,
     style: 'balanced'
   });
   
@@ -22,6 +22,8 @@ export default function TripGenerationWizard({ onSubmit }) {
   const [selectedDates, setSelectedDates] = useState({ depart: null, return: null });
   const [selectedFlight, setSelectedFlight] = useState(null);
   const [selectedHotel, setSelectedHotel] = useState(null);
+  const [confirmationBanner, setConfirmationBanner] = useState(false);
+  const itineraryRef = useRef(null);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -44,6 +46,16 @@ export default function TripGenerationWizard({ onSubmit }) {
         handleGenerate({ ...formData, destination: dest, duration: dur, budget: bud });
       }
     }
+  }, []);
+
+  useEffect(() => {
+    const handleMealsUpdated = (e) => {
+      if (e.detail) {
+        setGeneratedResult(e.detail);
+      }
+    };
+    window.addEventListener('meals-updated', handleMealsUpdated);
+    return () => window.removeEventListener('meals-updated', handleMealsUpdated);
   }, []);
 
   const update = (field, value) => setFormData(prev => ({ ...prev, [field]: value }));
@@ -112,34 +124,24 @@ export default function TripGenerationWizard({ onSubmit }) {
                 autoFocus
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Duration (Days)</label>
-                <input 
-                  type="number" min="1" max="30"
-                  className="w-full p-4 border rounded-xl text-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                  value={formData.duration}
-                  onChange={e => update('duration', e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Travelers</label>
-                <input 
-                  type="number" min="1" max="20"
-                  className="w-full p-4 border rounded-xl text-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                  value={formData.travelers}
-                  onChange={e => update('travelers', e.target.value)}
-                />
-              </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Duration (Days)</label>
+              <input 
+                type="number" min="1" max="30"
+                className="w-full p-4 border rounded-xl text-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                value={formData.duration}
+                onChange={e => update('duration', e.target.value)}
+              />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Total Budget (INR)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Per Person Budget (INR)</label>
               <input 
                 type="number" step="5000"
                 className="w-full p-4 border rounded-xl text-lg focus:ring-2 focus:ring-indigo-500 outline-none"
                 value={formData.budget}
                 onChange={e => update('budget', e.target.value)}
               />
+              <p className="text-xs text-gray-500 mt-2">The AI will plan your flights, hotel, and activities to fit within this per-person budget.</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Travel Style</label>
@@ -179,7 +181,12 @@ export default function TripGenerationWizard({ onSubmit }) {
 
       {/* STEP 2+: Always show Itinerary once generated */}
       {generatedResult && !generating && (
-        <div className="space-y-8">
+        <div className="space-y-8" ref={itineraryRef}>
+          {confirmationBanner && (
+            <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-4 rounded-xl text-center text-sm font-medium animate-fade-in">
+              ✓ Flight and hotel confirmed! Your itinerary has been updated.
+            </div>
+          )}
           <ItineraryResultView result={generatedResult} />
 
           {/* STEP 2 ACTION */}
@@ -195,13 +202,19 @@ export default function TripGenerationWizard({ onSubmit }) {
           {step >= 3 && (
             <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 animate-fade-in mt-12">
               <h3 className="text-2xl font-serif text-gray-900 mb-6 text-center">Pick Your Dates</h3>
-              <FlexibleDatePicker 
-                origin="BOM" // Defaulting to BOM as origin for this demo
-                destination={generatedResult.destination}
-                tripType="roundtrip"
-                onSelectDates={(depart, ret) => setSelectedDates({ depart, return: ret })}
-                context="copilot"
-              />
+              <div className="flex justify-center">
+                <FlexibleDatePicker 
+                  origin="BOM" // Defaulting to BOM as origin for this demo
+                  destination={generatedResult.destination}
+                  tripType="oneway"
+                  onSelectDates={(depart) => {
+                    const ret = new Date(depart);
+                    ret.setDate(ret.getDate() + (generatedResult.total_days || 1) - 1);
+                    setSelectedDates({ depart, return: ret });
+                  }}
+                  context="copilot"
+                />
+              </div>
               {step === 3 && (
                 <div className="flex justify-center mt-8">
                   <button 
@@ -223,13 +236,22 @@ export default function TripGenerationWizard({ onSubmit }) {
                 itineraryId={recordId}
                 destination={generatedResult.destination}
                 origin="BOM"
-                budget={generatedResult.budget_total}
+                budget={formData.budget}
                 departDate={selectedDates.depart}
                 returnDate={selectedDates.return}
                 travelers={generatedResult.total_travelers}
-                onComplete={(flight, hotel) => {
+                onComplete={(flight, hotel, updatedData) => {
                   setSelectedFlight(flight);
                   setSelectedHotel(hotel);
+                  // Update itinerary data so day cards re-render with new hotel/budget
+                  if (updatedData) {
+                    setGeneratedResult(updatedData);
+                  }
+                  setConfirmationBanner(true);
+                  // Scroll to itinerary to show updated day cards
+                  setTimeout(() => {
+                    itineraryRef.current?.scrollIntoView({ behavior: 'smooth' });
+                  }, 200);
                   setStep(5);
                 }}
               />
@@ -242,7 +264,7 @@ export default function TripGenerationWizard({ onSubmit }) {
               <CopilotSavePanel 
                 itineraryId={recordId}
                 destination={generatedResult.destination}
-                totalBudget={generatedResult.budget_used || generatedResult.budget_total}
+                totalBudget={(generatedResult.budget_used_per_person * generatedResult.total_travelers) || formData.budget}
                 duration={generatedResult.total_days}
                 travelers={generatedResult.total_travelers}
                 departDate={selectedDates.depart}

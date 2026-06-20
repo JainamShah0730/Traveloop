@@ -45,6 +45,13 @@ async function seed() {
           source: 'manual',
           isFeatured: true,
           region: pkg.region,
+          costBreakdownPerPerson: {
+            flights: Math.round(pkg.budget * 0.35),
+            accommodation: Math.round(pkg.budget * 0.30),
+            food: Math.round(pkg.budget * 0.18),
+            activities: Math.round(pkg.budget * 0.12),
+            local_transport: Math.round(pkg.budget * 0.05)
+          },
           budgetTiers: {
             create: [
               {

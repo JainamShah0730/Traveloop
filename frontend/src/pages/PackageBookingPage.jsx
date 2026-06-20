@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useParams, useSearchParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, Check, Loader2, Bed, Utensils, Car, Calendar } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Loader2, Bed, Utensils, Car, Calendar, Users, Minus, Plus } from 'lucide-react';
 import { useItinerary } from '../context/ItineraryContext';
 import { generateMockTrip } from '../utils/mockPackageData';
 import { getCityImageUrl } from '../utils/cityImages';
 import FlexibleDatePicker from '../components/flights/FlexibleDatePicker';
 import WatchPriceButton from '../components/alerts/WatchPriceButton';
+import TravelersManager from '../components/shared/TravelersManager';
 
 // ─── Complete mock data with ALL fields the JSX expects ───────────────────────
 const MOCK_BUDGET_TIERS = {
@@ -170,7 +171,13 @@ export default function PackageBookingPage({ setCurrentScreen, setSelectedTripId
   const [selectedPackage, setSelectedPackage] = useState(null);
   const [selectedTier, setSelectedTier] = useState(null);
   const [startDate, setStartDate] = useState(startParam || '');
+  const [travelers, setTravelers] = useState(1);
+  const [travelersList, setTravelersList] = useState([]);
   const [loading, setLoading] = useState(true);
+  
+  // Smart Date Picker integration states
+  const [selectedFlight, setSelectedFlight] = useState(null);
+  const [finalBudget, setFinalBudget] = useState(null);
   
   // FIX 1: Select Package button — loading state + prevent freeze
   const [isCreating, setIsCreating] = useState(false);
@@ -242,6 +249,7 @@ export default function PackageBookingPage({ setCurrentScreen, setSelectedTripId
           selectedTier,
           startDate,
           destination,
+          selectedFlight,
       });
 
       const tripPayload = {
@@ -253,14 +261,16 @@ export default function PackageBookingPage({ setCurrentScreen, setSelectedTripId
         endDate: new Date(new Date(startDate).setDate(new Date(startDate).getDate() + selectedPackage.duration_days)).toISOString(),
         status: "upcoming",
         stops: mockTrip.stops,
-        totalBudgetINR: selectedTier.total_inr || selectedPackage.defaultBudget || 0,
+        totalBudgetINR: mockTrip.total_budget,
         
         // Backend required keys (to avoid needing a server restart)
         name: selectedPackage.name,
         cover_photo: getCityImageUrl(selectedPackage.cities?.[0] || destination?.name, destination?.country) || selectedPackage.imageUrl,
         start_date: startDate,
         end_date: new Date(new Date(startDate).setDate(new Date(startDate).getDate() + selectedPackage.duration_days)).toISOString(),
-        total_budget: selectedPackage.price || selectedTier.total_inr || selectedPackage.defaultBudget || 0
+        total_budget: mockTrip.total_budget,
+        flight_details: selectedFlight ? JSON.stringify(selectedFlight) : null,
+        travelersList: travelersList
       };
 
       const token = localStorage.getItem('token');
@@ -324,6 +334,16 @@ export default function PackageBookingPage({ setCurrentScreen, setSelectedTripId
     ? (selectedTier.total_inr || (selectedTier.price_per_day_inr * selectedPackage.duration_days))
     : 0;
 
+  // Use the stored cost breakdown from the package, or compute sensible defaults
+  const rawBreakdown = selectedPackage.costBreakdownPerPerson || {};
+  const storedBreakdown = {
+    flights:         rawBreakdown.flights         || Math.round(totalCost * 0.35),
+    accommodation:   rawBreakdown.accommodation   || Math.round(totalCost * 0.30),
+    food:            rawBreakdown.food            || Math.round(totalCost * 0.18),
+    activities:      rawBreakdown.activities       || Math.round(totalCost * 0.12),
+    local_transport: rawBreakdown.local_transport  || Math.round(totalCost * 0.05),
+  };
+
   return (
     <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-8">
       {/* Full-page loading overlay */}
@@ -383,7 +403,9 @@ export default function PackageBookingPage({ setCurrentScreen, setSelectedTripId
 
       {/* SECTION 2 — 3 tier cards */}
       <div className="space-y-4">
-        <h2 className="text-2xl font-serif font-bold text-slate-800">Choose your budget</h2>
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+          <h2 className="text-2xl font-serif font-bold text-slate-800">Choose your budget</h2>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {tiers.map((tier) => {
             const isSelected = selectedTier?.id === tier.id;
@@ -422,8 +444,13 @@ export default function PackageBookingPage({ setCurrentScreen, setSelectedTripId
                   </div>
 
                   <p className="text-sm font-semibold text-primary">
-                    Total for {selectedPackage.duration_days} days: ₹{tierTotal.toLocaleString()}
+                    Total per person for {selectedPackage.duration_days} days: ₹{tierTotal.toLocaleString()}
                   </p>
+                  {travelers > 1 && (
+                    <p className="text-xs font-semibold text-slate-500">
+                      Group total ({travelers} travelers): ₹{(tierTotal * travelers).toLocaleString()}
+                    </p>
+                  )}
 
                   <div className="border-t border-slate-100 pt-3 space-y-2 text-sm text-slate-600">
                     {tier.accommodation && (
@@ -495,34 +522,65 @@ export default function PackageBookingPage({ setCurrentScreen, setSelectedTripId
           </div>
         </div>
         
+        <div className="border-t border-slate-100 pt-6">
+          <TravelersManager 
+            contextId={selectedPackage?.id || `mock-${packageId || 'unknown'}`} 
+            contextType="package" 
+            onTravelersChange={setTravelers} 
+            onTravelersDataChange={setTravelersList}
+          />
+        </div>
+
         {/* Flexible Date Picker Section */}
         <div className="border-t border-slate-100 pt-6">
-          <h4 className="text-sm font-semibold text-slate-500 uppercase mb-4">Select your Dates</h4>
+          <h4 className="text-sm font-semibold text-slate-500 uppercase mb-4">Select your Dates & Flights</h4>
           <FlexibleDatePicker 
             origin="DEL" 
             destination={destination.name} 
             tripType="oneway" 
+            packageData={selectedPackage}
+            travelers={travelers}
+            originalBudget={{
+              flights: storedBreakdown.flights,
+              accommodation: storedBreakdown.accommodation,
+              food: storedBreakdown.food,
+              activities: storedBreakdown.activities,
+              localTransport: storedBreakdown.local_transport,
+              perPersonBudget: totalCost
+            }}
             onSelectDates={(depart) => {
               // Convert date to YYYY-MM-DD
               const dateStr = depart.toISOString().split('T')[0];
               setStartDate(dateStr);
+              setSelectedFlight(null); // Reset when user clicks a new date
+              setFinalBudget(null);
             }} 
+            onConfirm={({ date, flight, budget }) => {
+              const dateStr = date.toISOString().split('T')[0];
+              setStartDate(dateStr);
+              setSelectedFlight(flight);
+              setFinalBudget(budget);
+            }}
           />
         </div>
 
         <div className="flex flex-col md:flex-row items-center justify-between border-t border-slate-100 pt-6 gap-4">
           <div>
-            <p className="text-xs text-slate-400 uppercase font-semibold">Total Cost</p>
+            <p className="text-xs text-slate-400 uppercase font-semibold">Total Cost (Per Person)</p>
             <p className="text-3xl font-bold text-slate-800">₹{totalCost.toLocaleString()}</p>
+            {travelers > 1 && (
+              <p className="text-xs text-slate-500 mt-1">Group total: ₹{(totalCost * travelers).toLocaleString()}</p>
+            )}
           </div>
 
           <div className="flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto">
             <div className="flex flex-col w-full sm:w-auto">
-              <label className="text-xs font-semibold text-slate-500 mb-1">Confirm Start Date</label>
+              <label className="text-xs font-semibold text-slate-500 mb-1">Confirmed Trip Details</label>
               <div className="flex items-center px-3 py-2 border border-slate-200 rounded-lg bg-slate-50">
                 <Calendar size={16} className="text-slate-400 mr-2" />
                 <span className="text-sm text-slate-700 font-medium">
-                  {startDate ? new Date(startDate).toLocaleDateString() : 'Select a date above'}
+                  {startDate ? new Date(startDate).toLocaleDateString() : 'Select a date'}
+                  {selectedFlight && ` · ${selectedFlight.airline} (${selectedFlight.departTime})`}
                 </span>
               </div>
             </div>

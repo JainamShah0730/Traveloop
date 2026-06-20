@@ -46,6 +46,8 @@ const copilotRouter = require("./routes/copilot");
 const pollsRouter = require("./routes/polls");
 const expensesRouter = require("./routes/expenses");
 const journalsRouter = require("./routes/journals");
+const travelersRouter = require("./routes/travelers");
+const invoiceRouter = require("./routes/invoice");
 
 const app = express();
 
@@ -95,6 +97,8 @@ app.use("/api/copilot", copilotRouter);
 app.use("/api/polls", pollsRouter);
 app.use("/api/expenses", expensesRouter);
 app.use("/api/journals", journalsRouter);
+app.use("/api/travelers", travelersRouter);
+app.use("/api/invoice", invoiceRouter);
 
 app.use("/trips/public", (req, res, next) => {
   // Public routes are already defined in tripsRouter as /public/:slug

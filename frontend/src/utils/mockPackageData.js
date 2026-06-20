@@ -220,9 +220,10 @@ function generateDayActivities(city, highlights, dayIndex, pricePerDay, tierName
  * @param {Object} params.selectedTier - Budget tier with price_per_day_inr, tier_name
  * @param {string} params.startDate - Start date string (YYYY-MM-DD)
  * @param {Object} params.destination - Destination object with name, country
+ * @param {Object} params.selectedFlight - The user's selected flight (optional)
  * @returns {Object} Complete trip object matching the data model
  */
-export function generateMockTrip({ destId, selectedPackage, selectedTier, startDate, destination }) {
+export function generateMockTrip({ destId, selectedPackage, selectedTier, startDate, destination, selectedFlight }) {
   const pkg = selectedPackage;
   const tier = selectedTier;
   const startDateObj = new Date(startDate);
@@ -289,6 +290,18 @@ export function generateMockTrip({ destId, selectedPackage, selectedTier, startD
       globalDayIndex++;
     }
 
+    // Inject flight activity on the very first day of the trip if provided
+    if (stopIndex === 0 && selectedFlight) {
+      allActivities.unshift({
+        id: uid('act-flight'),
+        name: `Flight to ${destination?.name || city} — ${selectedFlight.airline} ${selectedFlight.flightNo}`,
+        type: 'transport',
+        cost: selectedFlight.pricePerPerson || selectedFlight.totalPrice,
+        duration_mins: 150,
+        notes: `Day 1 departure flight | ${selectedFlight.departTime} - ${selectedFlight.arriveTime}`
+      });
+    }
+
     // BUG 5 FIX: Calculate real budget from activity costs
     const totalBudget = allActivities.reduce((sum, act) => sum + (act.cost || 0), 0);
 
@@ -315,7 +328,7 @@ export function generateMockTrip({ destId, selectedPackage, selectedTier, startD
     name: `${destination?.name || destId} ${pkg.duration_days}-Day Trip`,
     start_date: startDateObj.toISOString(),
     end_date: endDateObj.toISOString(),
-    total_budget: tier.total_inr || (tier.price_per_day_inr * pkg.duration_days) || tripTotalBudget,
+    total_budget: tripTotalBudget,
     cover_photo: destination?.cover_photo || getCityImageUrl(destination?.name || cities[0], destination?.country),
     is_public: false,
     stops,

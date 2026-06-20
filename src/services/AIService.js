@@ -1,35 +1,54 @@
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+const { OpenAI } = require("openai");
 
-// Initialize Gemini with the key from .env
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+const openai = new OpenAI({
+  baseURL: 'https://api.deepseek.com',
+  apiKey: 'sk-72d201936b4e422ab37b4ab4744bf36e'
+});
 
 const COPILOT_SYSTEM_PROMPT = `You are Travelloop's AI travel planner. Your ONLY job is to create a
 detailed, realistic day-by-day travel itinerary that fits EXACTLY within
-the user's stated budget.
+the user's stated PER-PERSON budget.
+
+MEAL PREFERENCE RULES — CRITICAL:
+\${mealConstraintText}
 
 RULES — never break these:
-1. NEVER exceed the user's total budget. The sum of all costs in the
+1. NEVER exceed the user's per-person budget. The sum of all costs in the
    itinerary (flights + hotels + activities + food + transport) MUST
-   be less than or equal to the stated budget.
-2. Always allocate budget:
+   be less than or equal to the stated budget_per_person.
+2. GOLDEN RULE: All costs MUST be per-person. Never multiply by the number
+   of travelers. The frontend handles that.
+3. Always allocate per-person budget:
    - Flights / transport to destination: 30-40%
-   - Accommodation: 25-35%
+   - Accommodation: 25-35% (cost per person, per night)
    - Food (all meals): 15-20%
    - Activities and sightseeing: 10-15%
    - Local transport: 5-8%
-3. If budget is too low for the destination, say so in budget_note.
-4. Recommend REAL named places — actual hotel names, restaurants, spots.
+4. If budget is too low for the destination, say so in budget_note.
+5. Recommend REAL named places — actual hotel names, restaurants, spots.
    Never say "a budget hotel" or "a local restaurant" — NAME them.
-5. Quality tier by per-person budget:
+6. Quality tier by per-person budget:
    Under ₹15,000: hostels, street food, free attractions
    ₹15,000–₹40,000: 2-3 star hotels, local restaurants
    ₹40,000–₹1,00,000: 3-4 star hotels, mid-range dining
    Above ₹1,00,000: 4-5 star hotels, fine dining
-6. Include at least one free activity per day.
-7. Adapt to the user's travel style (adventure/relaxation/cultural/
-   family/honeymoon).
-8. CRITICAL RULE: You MUST generate activities for EXACTLY the number of days requested by the user in 'duration'. If the user says duration is 9, the 'days' array MUST contain exactly 9 items. DO NOT STOP EARLY.
+7. Include at least one free activity per day.
+8. Adapt to the user's travel style.
+9. CRITICAL RULE: You MUST generate activities for EXACTLY the number of days requested by the user in 'duration'. If the user says duration is 9, the 'days' array MUST contain exactly 9 items. DO NOT STOP EARLY.
+
+CRITICAL BUDGET ENFORCEMENT:
+Your cost_breakdown_per_person values MUST satisfy this check:
+  flights + accommodation + food + activities + local_transport <= budget_per_person
+
+If you cannot fit all categories within budget_per_person, reduce quality tier:
+  - First reduce accommodation (switch to lower star hotel)
+  - Then reduce activities (replace paid activities with free ones)
+  - Then reduce food (switch from restaurants to street food)
+  NEVER exceed budget_per_person. Return budget_used_per_person <= budget_per_person always.
+
+Before returning the JSON, mentally verify:
+  sum(cost_breakdown_per_person values) <= budget_per_person
+If not, reduce costs until they fit. Do not return an over-budget response.
 
 Respond ONLY with valid JSON matching the schema below. No preamble,
 no markdown backticks, no explanation.
@@ -38,25 +57,25 @@ no markdown backticks, no explanation.
   "destination": string,
   "total_days": number,
   "total_travelers": number,
-  "budget_total": number,
-  "budget_used": number,
-  "budget_remaining": number,
+  "budget_per_person": number,
+  "budget_used_per_person": number,
+  "budget_remaining_per_person": number,
   "budget_note": string,
-  "cost_breakdown": {
+  "cost_breakdown_per_person": {
     "flights": number, "accommodation": number,
     "food": number, "activities": number, "local_transport": number
   },
   "days": [{
     "day": number, "date": string, "title": string,
-    "morning": { "activity": string, "cost": number, "tip": string },
-    "afternoon": { "activity": string, "cost": number, "tip": string },
-    "evening": { "activity": string, "cost": number, "tip": string },
-    "hotel": { "name": string, "cost_per_night": number, "rating": number },
+    "morning": { "activity": string, "cost_per_person": number, "tip": string },
+    "afternoon": { "activity": string, "cost_per_person": number, "tip": string },
+    "evening": { "activity": string, "cost_per_person": number, "tip": string },
+    "hotel": { "name": string, "cost_per_person_per_night": number, "rating": number },
     "meals": {
       "breakfast": string, "lunch": string, "dinner": string,
-      "total_food_cost": number
+      "total_food_cost_per_person": number
     },
-    "day_total": number
+    "day_total_per_person": number
   }],
   "tips": [string],
   "best_time_to_visit": string,
@@ -85,15 +104,18 @@ Respond ONLY with JSON:
 }`;
 
 async function generateItinerary(userInput) {
-  const prompt = `${COPILOT_SYSTEM_PROMPT}\n\nUser Input:\n${JSON.stringify(userInput, null, 2)}`;
+  const mealText = userInput.mealConstraintText || 'No specific meal restrictions.';
+  const systemPrompt = COPILOT_SYSTEM_PROMPT.replace('\${mealConstraintText}', mealText);
   
-  const result = await model.generateContent({
-    contents: [{ role: "user", parts: [{ text: prompt }] }],
-    generationConfig: {
-      maxOutputTokens: 8192,
-    }
+  const prompt = `${systemPrompt}\n\nUser Input:\n${JSON.stringify(userInput, null, 2)}`;
+  
+  const completion = await openai.chat.completions.create({
+    messages: [{ role: "user", content: prompt }],
+    model: "deepseek-chat",
+    max_tokens: 8192
   });
-  let raw = result.response.text();
+  
+  let raw = completion.choices[0].message.content;
   
   let parsed;
   try {
@@ -124,8 +146,13 @@ async function generateItinerary(userInput) {
 async function generateJournal(tripData) {
   const prompt = `${JOURNAL_SYSTEM_PROMPT}\n\nTrip Data:\n${JSON.stringify(tripData, null, 2)}`;
   
-  const result = await model.generateContent(prompt);
-  let raw = result.response.text();
+  const completion = await openai.chat.completions.create({
+    messages: [{ role: "user", content: prompt }],
+    model: "deepseek-chat",
+    max_tokens: 2000
+  });
+  
+  let raw = completion.choices[0].message.content;
   
   try {
     const jsonMatch = raw.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
@@ -175,17 +202,22 @@ Respond ONLY with valid JSON matching this exact shape. No preamble, no backtick
 
 async function generateFlightHotelOptions(params) {
   const prompt = FLIGHT_HOTEL_PROMPT
-    .replace('${destination}', params.destination)
-    .replace('${origin}', params.origin)
-    .replace('${departDate}', params.departDate)
-    .replace('${returnDate}', params.returnDate)
-    .replace('${nights}', params.nights)
-    .replace('${travelers}', params.travelers)
-    .replace('${flightHotelBudget}', params.budget)
-    .replace('${hotel_pref}', params.hotel_pref);
+    .replaceAll('\${destination}', params.destination)
+    .replaceAll('\${origin}', params.origin)
+    .replaceAll('\${departDate}', params.departDate)
+    .replaceAll('\${returnDate}', params.returnDate)
+    .replaceAll('\${nights}', params.nights)
+    .replaceAll('\${travelers}', params.travelers)
+    .replaceAll('\${flightHotelBudget}', params.budget)
+    .replaceAll('\${hotel_pref}', params.hotel_pref);
 
-  const result = await model.generateContent(prompt);
-  let raw = result.response.text();
+  const completion = await openai.chat.completions.create({
+    messages: [{ role: "user", content: prompt }],
+    model: "deepseek-chat",
+    max_tokens: 2000
+  });
+  
+  let raw = completion.choices[0].message.content;
   
   try {
     const jsonMatch = raw.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
@@ -199,4 +231,60 @@ async function generateFlightHotelOptions(params) {
   }
 }
 
-module.exports = { generateItinerary, generateJournal, generateFlightHotelOptions };
+async function generateMealsOnly(itinerary, mealConstraintText, travelersCount) {
+  const mealsPrompt = `
+You are updating ONLY the meal suggestions in an existing travel itinerary.
+Do NOT change activities, hotels, costs, or any other field.
+
+DESTINATION: ${itinerary.destination}
+DURATION: ${itinerary.total_days || itinerary.days?.length} days
+TRAVELERS: ${travelersCount}
+
+UPDATED MEAL PREFERENCES:
+${mealConstraintText}
+
+Current itinerary days (for context — do not change anything except meals):
+${JSON.stringify((itinerary.days || []).map(d => ({
+  day: d.day,
+  date: d.date,
+  title: d.title,
+  hotel: d.hotel?.name
+})))}
+
+For each day, return ONLY the updated meals object.
+Respond ONLY with valid JSON — an array of { day, meals } objects:
+[
+  {
+    "day": 1,
+    "meals": {
+      "breakfast": "Restaurant Name — Specific dish (why it fits: [veg/jain/vegan])",
+      "lunch": "Restaurant Name — Specific dish",
+      "dinner": "Restaurant Name — Specific dish",
+      "total_food_cost_per_person": number
+    }
+  }
+]
+No preamble. No backticks. Just the JSON array.
+`;
+
+  const completion = await openai.chat.completions.create({
+    messages: [{ role: "user", content: mealsPrompt }],
+    model: "deepseek-chat",
+    max_tokens: 2000
+  });
+
+  let raw = completion.choices[0].message.content;
+  
+  try {
+    const jsonMatch = raw.match(/\[[\s\S]*\]/);
+    if (jsonMatch) {
+      return JSON.parse(jsonMatch[0]);
+    }
+    return JSON.parse(raw);
+  } catch (e) {
+    console.error("JSON parse error in generateMealsOnly:", e);
+    return JSON.parse(raw.replace(/```json|```/g, '').trim());
+  }
+}
+
+module.exports = { generateItinerary, generateJournal, generateFlightHotelOptions, generateMealsOnly };

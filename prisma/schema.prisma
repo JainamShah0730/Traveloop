@@ -46,8 +46,6 @@ model User {
   // Wave 1 relations
   aiItineraries      AiItinerary[]
   votes              Vote[]
-  expensesPaid       Expense[]
-  expenseShares      ExpenseParticipant[]
   journals           Journal[]
   journalLikes       JournalLike[]
   journalComments    JournalComment[]
@@ -190,21 +188,22 @@ model Destination {
 }
 
 model TravelPackage {
-  id             String       @id @default(cuid())
-  destination_id String
-  destination    Destination  @relation(fields: [destination_id], references: [id], onDelete: Cascade)
-  name           String
-  duration_days  Int
-  tagline        String
-  cities_covered String[]
-  highlights     String[]
-  best_season    String
-  budgetTiers    BudgetTier[]
-  source         String       @default("manual")
-  aiItineraryId  String?
-  copilotSeed    Json?
-  isFeatured     Boolean      @default(false)
-  region         String?
+  id                     String       @id @default(cuid())
+  destination_id         String
+  destination            Destination  @relation(fields: [destination_id], references: [id], onDelete: Cascade)
+  name                   String
+  duration_days          Int
+  tagline                String
+  cities_covered         String[]
+  highlights             String[]
+  best_season            String
+  budgetTiers            BudgetTier[]
+  source                 String       @default("manual")
+  aiItineraryId          String?
+  copilotSeed            Json?
+  isFeatured             Boolean      @default(false)
+  region                 String?
+  costBreakdownPerPerson Json?
 
   @@map("travel_packages")
 }
@@ -262,12 +261,14 @@ model PriceAlert {
 
 // --- 1A: AI Copilot ---
 model AiItinerary {
-  id          String   @id @default(cuid())
-  userId      String
-  tripId      String?
-  destination String
-  budget      Float
-  duration    Int
+  id             String   @id @default(cuid())
+  userId         String
+  tripId         String?
+  destination    String
+  budget         Float
+  duration       Int
+  travelers      Int      @default(1)
+  budgetPerPerson Float?
   data           Json     // full JSON response from Claude
   isShared       Boolean  @default(false)
   selectedFlight Json?
@@ -317,34 +318,44 @@ model Expense {
   title        String
   amount       Float
   currency     String               @default("INR")
-  paidById     String               // who actually paid
-  splitType    String               // 'equal' | 'percentage' | 'custom'
-  category     String               // 'hotel' | 'food' | 'transport' | 'activity' | 'other'
+  category     String               // "hotel"|"food"|"transport"|"activity"|"other"
   date         DateTime             @default(now())
+  splitType    String               @default("equal")
+  // "equal" | "percentage" | "custom"
+
+  paidById     String               // TripTraveler.id of who paid
+  // IMPORTANT: this must be TripTraveler.id, NOT User.id
+
   participants ExpenseParticipant[]
-  trip         Trip                 @relation(fields: [tripId], references: [id], onDelete: Cascade)
-  paidBy       User                 @relation(fields: [paidById], references: [id], onDelete: Cascade)
+  trip         Trip                 @relation(fields: [tripId], references: [id])
+  paidBy       TripTraveler         @relation(fields: [paidById], references: [id])
 }
 
 model ExpenseParticipant {
-  id        String  @id @default(cuid())
-  expenseId String
-  userId    String
-  share     Float   // amount this person owes
-  settled   Boolean @default(false)
-  expense   Expense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
-  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id          String       @id @default(cuid())
+  expenseId   String
+  travelerId  String       // TripTraveler.id — NOT User.id
+  share       Float        // amount this traveler owes for this expense
+  settled     Boolean      @default(false)
+  settledAt   DateTime?
+
+  expense     Expense      @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  traveler    TripTraveler @relation(fields: [travelerId], references: [id])
+
+  @@unique([expenseId, travelerId])
 }
 
 model Settlement {
-  id         String   @id @default(cuid())
-  tripId     String
-  fromUserId String   // person who owes
-  toUserId   String   // person who is owed
-  amount     Float
-  settled    Boolean  @default(false)
-  settledAt  DateTime?
-  trip       Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  id            String       @id @default(cuid())
+  tripId        String
+  fromTravelerId String      // TripTraveler.id — who pays
+  toTravelerId  String       // TripTraveler.id — who receives
+  amount        Float
+  settled       Boolean      @default(false)
+  settledAt     DateTime?
+  trip          Trip         @relation(fields: [tripId], references: [id])
+  fromTraveler  TripTraveler @relation("SettlementFrom", fields: [fromTravelerId], references: [id])
+  toTraveler    TripTraveler @relation("SettlementTo", fields: [toTravelerId], references: [id])
 }
 
 // --- 1D: Travel Journal ---
@@ -390,4 +401,38 @@ model JournalComment {
   createdAt DateTime @default(now())
   journal   Journal  @relation(fields: [journalId], references: [id], onDelete: Cascade)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ──────────────────────────────────────────────
+// TRAVELER INFO
+// ──────────────────────────────────────────────
+
+model TripTraveler {
+  id          String   @id @default(cuid())
+  tripId      String?
+  itineraryId String?
+  packageId   String?
+
+  // Primary traveler (index 0) = the logged-in user
+  // Additional travelers (index 1+) = guests added by the user
+  isOwner     Boolean  @default(false)
+
+  name        String
+  email       String
+  phone       String?
+  age         Int?
+
+  // Seat/booking preferences (optional, for future use)
+  mealPref    String?  // "veg" | "non-veg" | "jain" | "vegan" | "any"
+  seatPref    String?  // "window" | "aisle" | "any"
+
+  createdAt   DateTime @default(now())
+
+  // Wave 1 relations
+  expensesPaid       Expense[]
+  expenseShares      ExpenseParticipant[]
+  settlementsFrom    Settlement[] @relation("SettlementFrom")
+  settlementsTo      Settlement[] @relation("SettlementTo")
+
+  @@map("trip_travelers")
 }

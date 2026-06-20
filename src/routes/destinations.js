@@ -2,10 +2,19 @@ const express = require('express');
 const router = express.Router();
 
 const { Redis } = require('@upstash/redis');
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN,
-});
+
+let redis;
+if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+  redis = new Redis({
+    url: process.env.UPSTASH_REDIS_REST_URL,
+    token: process.env.UPSTASH_REDIS_REST_TOKEN,
+  });
+} else {
+  redis = {
+    get: async () => null,
+    set: async () => null
+  };
+}
 
 // GET /api/destination-photo?city=Bali
 router.get('/photo', async (req, res) => {
@@ -15,7 +24,13 @@ router.get('/photo', async (req, res) => {
 
     const cacheKey = `destination-photo:${city.toLowerCase()}`;
     
-    const cachedUrl = await redis.get(cacheKey);
+    let cachedUrl = null;
+    try {
+      cachedUrl = await redis.get(cacheKey);
+    } catch (err) {
+      console.warn('Redis get failed (DestinationPhoto), bypassing cache:', err.message);
+    }
+    
     if (cachedUrl) {
       return res.status(200).json({ url: cachedUrl });
     }
@@ -64,11 +79,16 @@ router.get('/photo', async (req, res) => {
     }
 
     if (!finalDataUrl) {
-      return res.status(500).json({ error: 'Failed to process image' });
+      console.warn('Failed to convert to base64, returning raw URL');
+      return res.status(200).json({ url: photoUrl });
     }
     
     // Store in cache with 24-hour TTL (86400 seconds)
-    await redis.set(cacheKey, finalDataUrl, { ex: 86400 });
+    try {
+      await redis.set(cacheKey, finalDataUrl, { ex: 86400 });
+    } catch (err) {
+      console.warn('Redis set failed (DestinationPhoto):', err.message);
+    }
 
     res.status(200).json({ url: finalDataUrl });
   } catch (error) {

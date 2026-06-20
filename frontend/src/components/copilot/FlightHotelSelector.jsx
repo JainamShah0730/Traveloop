@@ -8,17 +8,24 @@ export default function FlightHotelSelector({
   const [selectedFlight, setSelectedFlight] = useState(null);
   const [selectedHotel, setSelectedHotel] = useState(null);
   const [error, setError] = useState(null);
+  const [confirming, setConfirming] = useState(false);
+  const [confirmed, setConfirmed] = useState(false);
+
+  const API_URL = import.meta.env.VITE_API_URL;
+
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('token');
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    return headers;
+  };
 
   const fetchOptions = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      const headers = { 'Content-Type': 'application/json' };
-      if (token) headers['Authorization'] = `Bearer ${token}`;
-
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/copilot/suggest-options`, {
+      const res = await fetch(`${API_URL}/api/copilot/suggest-options`, {
         method: 'POST',
-        headers,
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           itineraryId, destination, origin, budget, departDate, returnDate, travelers, hotel_pref: 'budget'
         })
@@ -44,6 +51,38 @@ export default function FlightHotelSelector({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  async function handleConfirm() {
+    if (!selectedFlight || !selectedHotel) {
+      setError('Please select both a flight and a hotel to continue');
+      return;
+    }
+
+    setConfirming(true);
+    setError(null);
+    try {
+      const res = await fetch(`${API_URL}/api/copilot/${itineraryId}/confirm-selection`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ selectedFlight, selectedHotel })
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || 'Failed to save selection');
+      }
+
+      const data = await res.json();
+      setConfirmed(true);
+
+      // Pass updated data to parent so ItineraryResultView re-renders
+      onComplete(selectedFlight, selectedHotel, data.updatedData);
+    } catch (err) {
+      setError(err.message || 'Failed to save selection. Please try again.');
+    } finally {
+      setConfirming(false);
+    }
+  }
+
   if (loading) {
     return (
       <div className="w-full max-w-4xl mx-auto p-8 bg-white rounded-2xl shadow-sm border border-gray-100 mt-8 text-center animate-pulse">
@@ -64,6 +103,12 @@ export default function FlightHotelSelector({
     );
   }
 
+  const confirmLabel = confirming
+    ? 'Saving...'
+    : confirmed
+      ? '✓ Confirmed'
+      : `Confirm — ${selectedFlight?.airline || 'Select flight'} + ${selectedHotel?.name || 'Select hotel'}`;
+
   return (
     <div className="w-full max-w-4xl mx-auto p-8 bg-white rounded-2xl shadow-sm border border-gray-100 mt-8 animate-fade-in">
       <h3 className="text-2xl font-serif text-gray-900 mb-6 text-center">Select Flight & Hotel</h3>
@@ -82,7 +127,7 @@ export default function FlightHotelSelector({
             {options.flights.map(f => (
               <div 
                 key={f.id} 
-                onClick={() => setSelectedFlight(f)}
+                onClick={() => { setSelectedFlight(f); setConfirmed(false); }}
                 className={`p-4 border rounded-xl cursor-pointer transition-colors relative ${selectedFlight?.id === f.id ? 'border-indigo-600 bg-indigo-50' : 'hover:border-indigo-300 bg-white'}`}
               >
                 {f.badge && <span className="absolute -top-3 right-4 bg-indigo-100 text-indigo-700 text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider">{f.badge}</span>}
@@ -107,7 +152,7 @@ export default function FlightHotelSelector({
             {options.hotels.map(h => (
               <div 
                 key={h.id} 
-                onClick={() => setSelectedHotel(h)}
+                onClick={() => { setSelectedHotel(h); setConfirmed(false); }}
                 className={`p-4 border rounded-xl cursor-pointer transition-colors relative ${selectedHotel?.id === h.id ? 'border-indigo-600 bg-indigo-50' : 'hover:border-indigo-300 bg-white'}`}
               >
                 {h.badge && <span className="absolute -top-3 right-4 bg-indigo-100 text-indigo-700 text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider">{h.badge}</span>}
@@ -128,11 +173,15 @@ export default function FlightHotelSelector({
 
       <div className="flex justify-center border-t border-gray-100 pt-6">
         <button 
-          disabled={!selectedFlight || !selectedHotel}
-          onClick={() => onComplete(selectedFlight, selectedHotel)}
-          className="px-8 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 shadow-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed w-full md:w-auto"
+          disabled={!selectedFlight || !selectedHotel || confirming || confirmed}
+          onClick={handleConfirm}
+          className={`px-8 py-3 rounded-xl font-medium shadow-md transition-colors w-full md:w-auto ${
+            confirmed
+              ? 'bg-emerald-600 text-white cursor-default'
+              : 'bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed'
+          }`}
         >
-          Confirm Selection
+          {confirmLabel}
         </button>
       </div>
     </div>

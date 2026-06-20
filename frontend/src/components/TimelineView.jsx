@@ -237,8 +237,9 @@ export default function TimelineView({
     const validTypes = ['hotel', 'transport', 'food', 'sightseeing', 'shopping', 'other'];
     const breakdown = { hotel: 0, transport: 0, food: 0, sightseeing: 0, shopping: 0, other: 0 };
 
+    const travelers = trip?.travelersCount || 1;
     activities.forEach((act) => {
-      const cost = Number(act.cost) || 0;
+      const cost = (Number(act.cost) || 0) * travelers;
       const typeKey = validTypes.includes(act.type) ? act.type : 'other';
       breakdown[typeKey] += cost;
     });
@@ -252,9 +253,10 @@ export default function TimelineView({
     const validTypes = ['hotel', 'transport', 'food', 'sightseeing', 'shopping', 'other'];
     const breakdown = { hotel: 0, transport: 0, food: 0, sightseeing: 0, shopping: 0, other: 0 };
 
+    const travelers = trip?.travelersCount || 1;
     (trip?.stops || []).forEach((stop) => {
       (stop.activities || []).forEach((act) => {
-        const cost = Number(act.cost) || 0;
+        const cost = (Number(act.cost) || 0) * travelers;
         const typeKey = validTypes.includes(act.type) ? act.type : 'other';
         breakdown[typeKey] += cost;
       });
@@ -318,7 +320,7 @@ export default function TimelineView({
     );
   }
 
-  const totalBudget = trip.total_budget || 0;
+  const totalBudget = (trip.total_budget || 0) * (trip.travelersCount || 1);
   const spentPercent = totalBudget > 0 ? Math.min(100, Math.round((tripBudget.total / totalBudget) * 100)) : 0;
 
   const formatDate = (dateStr, dayOffset = 0) => {
@@ -430,14 +432,15 @@ export default function TimelineView({
           {groupedDays.map((dayGroup) => {
             const tripStart = trip?.start_date || trip?.startDate || activeStop?.from_date;
             const dayDate = formatDate(tripStart, dayGroup.dayNumber - 1);
-            const dayTotal = dayGroup.acts.reduce((sum, a) => sum + (Number(a.cost) || 0), 0);
+            const travelers = trip?.travelersCount || 1;
+            const dayTotal = dayGroup.acts.reduce((sum, a) => sum + (Number(a.cost) || 0) * travelers, 0);
 
             // Categorize activities for Copilot layout
             const stayActs = dayGroup.acts.filter(a => a.type === 'hotel' || a.name.toLowerCase().includes('stay') || a.name.toLowerCase().includes('hotel'));
             const mealActs = dayGroup.acts.filter(a => a.type === 'food' || a.name.toLowerCase().includes('meal') || a.name.toLowerCase().includes('restaurant'));
             const timelineActs = dayGroup.acts.filter(a => !stayActs.includes(a) && !mealActs.includes(a));
 
-            const totalFoodCost = mealActs.reduce((sum, a) => sum + (Number(a.cost) || 0), 0);
+            const totalFoodCost = mealActs.reduce((sum, a) => sum + (Number(a.cost) || 0) * travelers, 0);
 
             return (
               <div key={dayGroup.dayNumber} className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-slate-100 relative overflow-hidden">
@@ -497,7 +500,7 @@ export default function TimelineView({
                                 {activity.name}
                               </p>
                               <p className="text-sm text-slate-500 mt-1">
-                                ₹{Number(activity.cost || 0).toLocaleString("en-IN")} • {activity.duration_mins} min
+                                ₹{(Number(activity.cost || 0) * travelers).toLocaleString("en-IN")} • {activity.duration_mins} min
                                 {activity.notes && !activity.notes.match(/^Day \d+$/i) && ` • ${activity.notes.replace(/Day \d+/ig, '').trim()}`}
                               </p>
                             </div>
@@ -528,7 +531,7 @@ export default function TimelineView({
                                   </div>
                                 </div>
                                 <p className="text-sm text-slate-500 mt-1">
-                                  ₹{Number(stay.cost || 0).toLocaleString("en-IN")} 
+                                  ₹{(Number(stay.cost || 0) * travelers).toLocaleString("en-IN")} 
                                   {stay.notes && !stay.notes.match(/^Day \d+$/i) && ` • ${stay.notes.replace(/Day \d+/ig, '').trim()}`}
                                 </p>
                               </div>
@@ -560,7 +563,7 @@ export default function TimelineView({
                                   </div>
                                 </div>
                                 <p className="text-xs text-slate-500 mt-1">
-                                  ₹{Number(meal.cost || 0).toLocaleString("en-IN")}
+                                  ₹{(Number(meal.cost || 0) * travelers).toLocaleString("en-IN")}
                                   {meal.notes && !meal.notes.match(/^Day \d+$/i) && ` • ${meal.notes.replace(/Day \d+/ig, '').trim()}`}
                                 </p>
                               </div>
@@ -657,7 +660,8 @@ export default function TimelineView({
             </h3>
             <div className="grid grid-cols-1 gap-2">
               {groupedDays.map((dayGroup) => {
-                const dayTotal = dayGroup.acts.reduce((sum, a) => sum + (Number(a.cost) || 0), 0);
+                const travelers = trip?.travelersCount || 1;
+                const dayTotal = dayGroup.acts.reduce((sum, a) => sum + (Number(a.cost) || 0) * travelers, 0);
                 const tripStart = trip?.start_date || trip?.startDate || activeStop?.from_date;
                 const dayDate = formatDate(tripStart, dayGroup.dayNumber - 1);
 
@@ -689,7 +693,8 @@ export default function TimelineView({
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {trip?.stops?.map((stop) => {
-                const stopTotal = (stop.activities || []).reduce((sum, a) => sum + (Number(a.cost) || 0), 0);
+                const travelers = trip?.travelersCount || 1;
+                const stopTotal = (stop.activities || []).reduce((sum, a) => sum + (Number(a.cost) || 0) * travelers, 0);
                 const isActive = stop.id === activeStopId;
 
                 return (

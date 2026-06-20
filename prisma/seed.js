@@ -16,6 +16,17 @@ async function createDestination(data) {
   console.log(`Seeding destination: ${dest.name}...`);
 
   for (const pkg of data.packages) {
+    // Calculate a default breakdown based on the Standard tier price
+    const standardTier = pkg.tiers.find(t => t.tier_name === 'Standard') || pkg.tiers[0];
+    const total_inr = standardTier.price_per_day_inr * pkg.days;
+    const costBreakdownPerPerson = {
+      flights: Math.round(total_inr * 0.35),
+      accommodation: Math.round(total_inr * 0.30),
+      food: Math.round(total_inr * 0.18),
+      activities: Math.round(total_inr * 0.12),
+      local_transport: Math.round(total_inr * 0.05)
+    };
+
     const created = await prisma.travelPackage.create({
       data: {
         destination_id: dest.id,
@@ -24,7 +35,8 @@ async function createDestination(data) {
         tagline: pkg.tagline,
         cities_covered: pkg.cities,
         highlights: pkg.highlights,
-        best_season: pkg.season
+        best_season: pkg.season,
+        costBreakdownPerPerson
       }
     });
 

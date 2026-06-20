@@ -26,7 +26,8 @@ export default function FinancialHealthCard({ setCurrentScreen }) {
             setTripName(upcoming.name);
             if (upcoming.total_budget > 0) {
                let cost = upcoming.total_activities_cost || 0;
-               let pct = Math.round((cost / upcoming.total_budget) * 100);
+               let totalBudget = upcoming.total_budget * (upcoming.travelersCount || 1);
+               let pct = Math.round((cost / totalBudget) * 100);
                if (pct > 100) pct = 100;
                setPercentage(pct);
             }

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ShareTripCard from '../shared/ShareTripCard';
 import PriceAlertButton from '../shared/PriceAlertButton';
+import TravelersManager from '../shared/TravelersManager';
 
 export default function CopilotSavePanel({ 
   itineraryId, destination, totalBudget, duration, travelers, departDate, returnDate
@@ -10,6 +11,7 @@ export default function CopilotSavePanel({
   const [saving, setSaving] = useState(false);
   const [shareCommunity, setShareCommunity] = useState(false);
   const [tripName, setTripName] = useState(`${destination} Trip`);
+  const [managedTravelersCount, setManagedTravelersCount] = useState(travelers || 1);
 
   const handleSave = async () => {
     setSaving(true);
@@ -70,8 +72,19 @@ export default function CopilotSavePanel({
           returnDate={returnDate ? new Date(returnDate).toLocaleDateString() : 'Flexible'}
           durationNights={duration}
           totalBudget={totalBudget}
-          travelers={travelers}
+          travelers={managedTravelersCount}
         />
+      </div>
+
+      <div className="w-full max-w-md space-y-6 mb-6">
+        <TravelersManager 
+          contextId={itineraryId} 
+          contextType="itinerary" 
+          onTravelersChange={setManagedTravelersCount} 
+        />
+        <div className="text-xs text-slate-500 font-semibold bg-slate-50 p-2 rounded-lg border border-slate-100">
+          Group Cost: {managedTravelersCount} travelers × ₹{Math.round(totalBudget).toLocaleString()} = ₹{Math.round(totalBudget * managedTravelersCount).toLocaleString()}
+        </div>
       </div>
 
       <div className="w-full max-w-md space-y-6">

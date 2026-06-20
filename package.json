@@ -19,10 +19,12 @@
     "@upstash/redis": "^1.38.0",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
+    "dotenv": "^17.4.2",
     "express": "^4.21.0",
     "jsonwebtoken": "^9.0.2",
     "node-cron": "^4.2.1",
     "nodemailer": "^8.0.10",
+    "openai": "^6.44.0",
     "resend": "^6.12.4",
     "socket.io": "^4.8.0"
   },

@@ -3,9 +3,8 @@ const prisma = require('../db');
 const { Resend } = require('resend');
 const { getRealPrice } = require('./flightService');
 
-// Initialize Resend
-const resend = new Resend(process.env.RESEND_API_KEY);
-
+// Initialize Resend with a fallback key to prevent app crash if missing
+const resend = new Resend(process.env.RESEND_API_KEY || 're_123456789_dummy_key');
 // Fetch current price for alert checking
 async function fetchCurrentPrice(alert) {
   if (alert.alert_type === 'flight') {

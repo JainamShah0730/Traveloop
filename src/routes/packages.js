@@ -785,7 +785,7 @@ router.get('/packages/v2', async (req, res) => {
         if (style && !where.OR) {
           // If Prisma OR didn't catch it
           const styleLower = style.toLowerCase();
-          const styleMatch = pkg.tagline.toLowerCase().includes(styleLower) || pkg.highlights.some(h => h.toLowerCase().includes(styleLower));
+          const styleMatch = pkg.tagline?.toLowerCase().includes(styleLower) || pkg.highlights?.some(h => h?.toLowerCase().includes(styleLower));
           if (!styleMatch) match = false;
         }
         return match;
@@ -799,8 +799,8 @@ router.get('/packages/v2', async (req, res) => {
         id: pkg.id,
         title: pkg.name,
         destinationId: pkg.destination_id,
-        destination: pkg.destination.name,
-        country: pkg.destination.country,
+        destination: pkg.destination?.name || 'Unknown',
+        country: pkg.destination?.country || 'Unknown',
         region: pkg.region,
         duration: pkg.duration_days,
         pricePerPerson: minTierPrice,
@@ -809,8 +809,9 @@ router.get('/packages/v2', async (req, res) => {
         source: pkg.source,
         isFeatured: pkg.isFeatured,
         highlights: pkg.highlights,
-        coverPhoto: pkg.destination.cover_photo,
-        description: pkg.destination.description
+        coverPhoto: pkg.destination?.cover_photo || null,
+        description: pkg.destination?.description || '',
+        costBreakdownPerPerson: pkg.costBreakdownPerPerson || null
       };
     });
 
@@ -835,8 +836,8 @@ router.get('/packages/v2/:id', async (req, res) => {
     res.json({
         id: pkg.id,
         title: pkg.name,
-        destination: pkg.destination.name,
-        country: pkg.destination.country,
+        destination: pkg.destination?.name || 'Unknown',
+        country: pkg.destination?.country || 'Unknown',
         region: pkg.region,
         duration: pkg.duration_days,
         pricePerPerson: minTierPrice,
@@ -845,9 +846,10 @@ router.get('/packages/v2/:id', async (req, res) => {
         source: pkg.source,
         isFeatured: pkg.isFeatured,
         highlights: pkg.highlights,
-        coverPhoto: pkg.destination.cover_photo,
-        description: pkg.destination.description,
-        copilotSeed: pkg.copilotSeed
+        coverPhoto: pkg.destination?.cover_photo || null,
+        description: pkg.destination?.description || '',
+        copilotSeed: pkg.copilotSeed,
+        costBreakdownPerPerson: pkg.costBreakdownPerPerson || null
     });
   } catch (error) {
     console.error(error);
@@ -875,8 +877,15 @@ router.get('/packages/community/list', async (req, res) => {
 
     const previews = itineraries.map(it => {
       let previewData = {};
-      if (typeof it.data === 'string') previewData = JSON.parse(it.data);
-      else previewData = it.data;
+      if (typeof it.data === 'string') {
+        try {
+          previewData = JSON.parse(it.data);
+        } catch (e) {
+          previewData = {};
+        }
+      } else {
+        previewData = it.data || {};
+      }
 
       return {
         id: it.id,
@@ -885,7 +894,7 @@ router.get('/packages/community/list', async (req, res) => {
         duration: it.duration,
         createdAt: it.createdAt,
         user: it.user,
-        dayPreviews: previewData.days?.slice(0, 2).map(d => d.title || d.day) || []
+        dayPreviews: previewData?.days?.slice(0, 2).map(d => d.title || d.day) || []
       };
     });
 

@@ -24,19 +24,24 @@ export function generateInvoiceFromTrip(trip, travelers = []) {
     return acts;
   });
 
+  const numTravelers = travelers && travelers.length > 0 ? travelers.length : 1;
+
   // Build line items for the table
-  const lineItems = allActivities.map((act, index) => ({
-    number: index + 1,
-    activityId: act.id || act.activityId,
-    category: act.type || act.category || 'Other',
-    description: act.name || act.title,
-    qty: 1,
-    unitCost: Number(act.cost) || 0,
-    amount: Number(act.cost) || 0,
-    date: act.date,
-    stopCity: act.stopCity,
-    isPaid: act.isPaid ?? act.is_paid ?? false,
-  }));
+  const lineItems = allActivities.map((act, index) => {
+    const unitCost = Number(act.cost) || 0;
+    return {
+      number: index + 1,
+      activityId: act.id || act.activityId,
+      category: act.type || act.category || 'Other',
+      description: act.name || act.title,
+      qty: numTravelers,
+      unitCost: unitCost,
+      amount: unitCost * numTravelers,
+      date: act.date,
+      stopCity: act.stopCity,
+      isPaid: act.isPaid ?? act.is_paid ?? false,
+    };
+  });
 
   // Category spend breakdown
   const categorySpend = lineItems.reduce((acc, item) => {

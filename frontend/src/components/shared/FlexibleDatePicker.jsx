@@ -44,6 +44,14 @@ export default function FlexibleDatePicker({ origin = 'DEL', destination = 'GOA'
     return 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-100';
   };
 
+  const getDotColor = (price, minPrice, maxPrice) => {
+    if (!price) return null;
+    const pct = (price - minPrice) / (maxPrice - minPrice);
+    if (pct < 0.25) return 'bg-emerald-500';
+    if (pct > 0.75) return 'bg-amber-500';
+    return 'bg-gray-400';
+  };
+
   const handleDayClick = (day) => {
     if (isPast(day) && !isToday(day)) return;
     
@@ -138,11 +146,21 @@ export default function FlexibleDatePicker({ origin = 'DEL', destination = 'GOA'
             >
               <span className="text-sm font-medium">{format(day, 'd')}</span>
               {!loading && !isPastDay && price && (!selectedDepartDate || !isSameDay(day, selectedDepartDate)) && (!selectedReturnDate || !isSameDay(day, selectedReturnDate)) && (
-                <span className="text-[10px] opacity-80">₹{(price / 1000).toFixed(1)}k</span>
+                <span className={`inline-block w-1.5 h-1.5 rounded-full mt-0.5 ${getDotColor(price, priceData?.min_price, priceData?.max_price)}`}></span>
               )}
             </button>
           );
         })}
+      </div>
+
+      {/* Legend */}
+      <div className="mt-4 pt-3 border-t border-slate-100">
+        <div className="flex items-center justify-center gap-4 mb-1">
+          <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-emerald-500"></div><span className="text-slate-500 text-[10px]">Cheaper dates</span></div>
+          <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-gray-400"></div><span className="text-slate-500 text-[10px]">Mid-range</span></div>
+          <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-amber-500"></div><span className="text-slate-500 text-[10px]">Higher prices</span></div>
+        </div>
+        <p className="text-center text-[10px] text-slate-400">Select a date to see exact flight prices</p>
       </div>
     </div>
   );

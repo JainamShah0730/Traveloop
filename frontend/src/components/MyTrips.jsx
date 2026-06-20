@@ -158,7 +158,7 @@ export default function MyTrips({ setCurrentScreen, setSelectedTripId }) {
             </div>
             <div className="flex items-center gap-2">
               <IndianRupee size={16} className="text-slate-400" />
-              <span>Budget: ₹{(trip.total_budget || 0).toLocaleString()}</span>
+              <span>Budget: ₹{((trip.total_budget || 0) * (trip.travelersCount || 1)).toLocaleString()}</span>
             </div>
           </div>
 
