@@ -13,7 +13,7 @@ const { OpenAI } = require("openai");
 
 const openai = new OpenAI({
   baseURL: 'https://api.deepseek.com',
-  apiKey: process.env.DEEPSEEK_API_KEY
+  apiKey: process.env.DEEPSEEK_API_KEY || 'missing-key-update-env'
 });
 
 const COPILOT_SYSTEM_PROMPT = `You are Travelloop's AI travel planner. Your ONLY job is to create a

@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const prisma = require('../db');
 const requireAuth = require('../middleware/auth');
+const requireAdmin = require('../middleware/requireAdmin');
 const alertService = require('../services/alertService');
 
 // POST /api/alerts - Create a new price alert
@@ -91,7 +92,7 @@ router.patch('/:id', requireAuth, async (req, res) => {
 });
 
 // POST /api/alerts/check - Trigger cron logic manually (for testing)
-router.post('/check', async (req, res) => {
+router.post('/check', requireAuth, requireAdmin, async (req, res) => {
   try {
     await alertService.checkPricesAndNotify();
     res.status(200).json({ success: true, message: 'Price check completed.' });
