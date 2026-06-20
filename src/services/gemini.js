@@ -1,3 +1,14 @@
+/**
+ * AI Service (Gemini)
+ * 
+ * This service uses Google Gemini to power legacy and lightweight features:
+ * - Manual trip builder's "suggest activities"
+ * - Packing lists
+ * - Older full-itinerary regeneration
+ * 
+ * Note: DeepSeek is used in a separate service (AIService.js) for newer flagship features like the AI Copilot.
+ */
+
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);

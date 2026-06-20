@@ -1,7 +1,7 @@
 /**
  * updateItineraryWithSelections
  *
- * Takes the full itinerary JSON (from Claude) and patches it with the
+ * Takes the full itinerary JSON (from DeepSeek) and patches it with the
  * user's confirmed flight and hotel selections:
  *  1. Replaces hotel.name / cost / rating on every day card
  *  2. Updates cost_breakdown_per_person.flights with selected flight price

@@ -36,11 +36,14 @@ export default function CopilotSavePanel({
 
       // 2. Share to community if toggled
       if (shareCommunity) {
-        await fetch(`${import.meta.env.VITE_API_URL}/api/copilot/share/${itineraryId}`, {
+        const shareRes = await fetch(`${import.meta.env.VITE_API_URL}/api/copilot/share/${itineraryId}`, {
           method: 'PATCH',
           headers,
           body: JSON.stringify({ isShared: true })
         });
+        if (!shareRes.ok) {
+          console.warn("Failed to share itinerary to community feed");
+        }
       }
 
       navigate(`/builder/${data.slug || data.id}`);

@@ -316,6 +316,7 @@ export default function AdminDashboard() {
     try {
       const res = await fetch(`${API}/stats`, { headers });
       if (res.ok) return await res.json();
+      if (res.status === 403) return { forbidden: true };
     } catch {}
     return mockStats();
   }, []);
@@ -324,6 +325,7 @@ export default function AdminDashboard() {
     try {
       const res = await fetch(`${API}/growth?days=${d}`, { headers });
       if (res.ok) return await res.json();
+      if (res.status === 403) return { forbidden: true };
     } catch {}
     return mockGrowth(d);
   }, []);
@@ -332,6 +334,7 @@ export default function AdminDashboard() {
     try {
       const res = await fetch(`${API}/top-destinations`, { headers });
       if (res.ok) return await res.json();
+      if (res.status === 403) return { forbidden: true };
     } catch {}
     return mockDestinations();
   }, []);
@@ -360,9 +363,11 @@ export default function AdminDashboard() {
   useEffect(() => {
     (async () => {
       const g = await fetchGrowth(days);
-      setGrowth(g);
+      if (!g?.forbidden) {
+        setGrowth(g);
+      }
     })();
-  }, [days]);
+  }, [days, fetchGrowth]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -449,6 +454,19 @@ export default function AdminDashboard() {
       }
     }
   };
+
+  // ── Forbidden state ───────────────────────────────────────────
+  if (stats?.forbidden || growth?.forbidden || destinations?.forbidden) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '400px', textAlign: 'center' }}>
+        <div style={{ background: '#fee2e2', color: '#ef4444', padding: '1rem', borderRadius: '50%', marginBottom: '1rem' }}>
+          <Users size={32} />
+        </div>
+        <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1e293b', marginBottom: '0.5rem' }}>Access Denied</h2>
+        <p style={{ color: '#64748b', maxWidth: '300px' }}>You need administrator privileges to view this dashboard.</p>
+      </div>
+    );
+  }
 
   // ── Loading state ─────────────────────────────────────────────
   if (!stats) {

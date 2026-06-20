@@ -269,7 +269,7 @@ model AiItinerary {
   duration       Int
   travelers      Int      @default(1)
   budgetPerPerson Float?
-  data           Json     // full JSON response from Claude
+  data           Json     // full JSON response from DeepSeek
   isShared       Boolean  @default(false)
   selectedFlight Json?
   selectedHotel  Json?

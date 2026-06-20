@@ -4,16 +4,7 @@ const auth = require("../middleware/auth");
 const router = express.Router();
 const prisma = require("../db");
 
-async function canAccess(tripId, userId) {
-  const trip = await prisma.trip.findUnique({
-    where: { id: tripId },
-    include: { collaborators: true },
-  });
-  if (!trip) return { trip: null, allowed: false, isOwner: false };
-  const isOwner = trip.user_id === userId;
-  const isCollab = trip.collaborators.some((c) => c.user_id === userId);
-  return { trip, allowed: isOwner || isCollab, isOwner };
-}
+const { canAccessTrip: canAccess } = require("../utils/tripAccess");
 
 router.get("/", auth, async (req, res) => {
   try {

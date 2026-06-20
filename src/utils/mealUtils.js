@@ -1,6 +1,6 @@
 /**
  * Given an array of traveler meal preferences,
- * return the most restrictive combined preference to pass to Claude.
+ * return the most restrictive combined preference to pass to DeepSeek.
  *
  * Priority (most restrictive first):
  * jain > vegan > veg > non-veg > any
@@ -18,7 +18,7 @@ function resolveGroupMealPreference(travelers) {
 }
 
 /**
- * Build a human-readable meal constraint string for the Claude prompt.
+ * Build a human-readable meal constraint string for the DeepSeek prompt.
  */
 function buildMealConstraintText(travelers) {
   const resolved = resolveGroupMealPreference(travelers);
@@ -54,7 +54,7 @@ function buildMealConstraintText(travelers) {
   lines.push('- Example: "Anand Veg, Fort — Jain thali with 12 sabzis, no root veg"');
   lines.push('- Never say "a local restaurant" — always name it');
 
-  // List each traveler's preference for Claude's awareness
+  // List each traveler's preference for DeepSeek's awareness
   if (travelers.length > 0) {
     const prefSummary = travelers
       .map(t => `${t.name || 'Traveler'}: ${t.mealPref || 'any'}`)

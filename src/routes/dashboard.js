@@ -1,11 +1,12 @@
 const express = require("express");
 const auth = require("../middleware/auth");
+const requireAdmin = require("../middleware/requireAdmin");
 const prisma = require("../db");
 
 const router = express.Router();
 
 // ── GET /api/dashboard/stats ──────────────────────────────────
-router.get("/stats", auth, async (req, res) => {
+router.get("/stats", auth, requireAdmin, async (req, res) => {
   try {
     const [userCount, tripCount] = await Promise.all([
       prisma.user.count(),
@@ -50,7 +51,7 @@ router.get("/stats", auth, async (req, res) => {
 });
 
 // ── GET /api/dashboard/growth?days=7 ──────────────────────────
-router.get("/growth", auth, async (req, res) => {
+router.get("/growth", auth, requireAdmin, async (req, res) => {
   try {
     const days = parseInt(req.query.days) || 7;
     const now = new Date();
@@ -106,7 +107,7 @@ router.get("/growth", auth, async (req, res) => {
 // ── GET /api/dashboard/top-destinations ───────────────────────
 // Shows destinations from the Destination catalog, ranked by how many
 // trips users have booked from their packages.
-router.get("/top-destinations", auth, async (req, res) => {
+router.get("/top-destinations", auth, requireAdmin, async (req, res) => {
   try {
     // 1. Get all destinations that have packages
     const destinations = await prisma.destination.findMany({

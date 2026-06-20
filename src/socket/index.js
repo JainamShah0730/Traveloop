@@ -1,6 +1,19 @@
 const { Server } = require("socket.io");
 const jwt = require("jsonwebtoken");
 const prisma = require("../db");
+const { canAccessTrip } = require("../utils/tripAccess");
+
+/**
+ * NOTE: The frontend currently does not use socket.io-client at all.
+ * This entire real-time collaboration layer is infrastructure without a consumer.
+ * If this feature is abandoned, this file and the socket setup can be safely removed.
+ */
+
+async function canMutateTrip(socket, tripId) {
+  if (!socket.rooms.has(`trip:${tripId}`)) return false;
+  const { allowed } = await canAccessTrip(tripId, socket.user.id);
+  return allowed;
+}
 
 /**
  * Initialise Socket.io on the existing HTTP server.
@@ -75,7 +88,8 @@ function initSocket(httpServer) {
 
     socket.on("stop_added", async ({ tripId, stop }) => {
       try {
-        const created = await prisma.stop.create({ data: stop });
+        if (!(await canMutateTrip(socket, tripId))) return socket.emit("error", "forbidden");
+        const created = await prisma.stop.create({ data: { ...stop, trip_id: tripId } });
         socket.to(`trip:${tripId}`).emit("stop_added", created);
       } catch (err) {
         console.error("stop_added error:", err);
@@ -85,6 +99,10 @@ function initSocket(httpServer) {
 
     socket.on("stop_deleted", async ({ tripId, stopId }) => {
       try {
+        if (!(await canMutateTrip(socket, tripId))) return socket.emit("error", "forbidden");
+        const stop = await prisma.stop.findUnique({ where: { id: stopId } });
+        if (!stop || stop.trip_id !== tripId) return socket.emit("error", "invalid stop or trip mismatch");
+
         await prisma.stop.delete({ where: { id: stopId } });
         socket.to(`trip:${tripId}`).emit("stop_deleted", { stopId });
       } catch (err) {
@@ -95,6 +113,10 @@ function initSocket(httpServer) {
 
     socket.on("activity_added", async ({ tripId, stopId, activity }) => {
       try {
+        if (!(await canMutateTrip(socket, tripId))) return socket.emit("error", "forbidden");
+        const stop = await prisma.stop.findUnique({ where: { id: stopId } });
+        if (!stop || stop.trip_id !== tripId) return socket.emit("error", "invalid stop or trip mismatch");
+
         const created = await prisma.activity.create({
           data: { ...activity, stop_id: stopId },
         });
@@ -107,6 +129,10 @@ function initSocket(httpServer) {
 
     socket.on("activity_deleted", async ({ tripId, activityId }) => {
       try {
+        if (!(await canMutateTrip(socket, tripId))) return socket.emit("error", "forbidden");
+        const activity = await prisma.activity.findUnique({ where: { id: activityId }, include: { stop: true } });
+        if (!activity || !activity.stop || activity.stop.trip_id !== tripId) return socket.emit("error", "invalid activity or trip mismatch");
+
         await prisma.activity.delete({ where: { id: activityId } });
         socket.to(`trip:${tripId}`).emit("activity_deleted", { activityId });
       } catch (err) {
@@ -117,6 +143,11 @@ function initSocket(httpServer) {
 
     socket.on("stop_reordered", async ({ tripId, orderedIds }) => {
       try {
+        if (!(await canMutateTrip(socket, tripId))) return socket.emit("error", "forbidden");
+        
+        const count = await prisma.stop.count({ where: { id: { in: orderedIds }, trip_id: tripId } });
+        if (count !== orderedIds.length) return socket.emit("error", "some stops do not belong to this trip");
+
         const updates = orderedIds.map((id, index) =>
           prisma.stop.update({ where: { id }, data: { order_index: index } })
         );

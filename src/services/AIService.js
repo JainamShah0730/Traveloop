@@ -1,8 +1,19 @@
+/**
+ * AI Service (DeepSeek)
+ * 
+ * This service uses DeepSeek to power the newer flagship features:
+ * - AI Copilot (full itinerary generation and targeted meal updates)
+ * - Journal writing
+ * - Flight and hotel suggestions
+ * 
+ * Note: Gemini is used in a separate service (gemini.js) for legacy/lightweight features.
+ */
+
 const { OpenAI } = require("openai");
 
 const openai = new OpenAI({
   baseURL: 'https://api.deepseek.com',
-  apiKey: 'sk-72d201936b4e422ab37b4ab4744bf36e'
+  apiKey: process.env.DEEPSEEK_API_KEY
 });
 
 const COPILOT_SYSTEM_PROMPT = `You are Travelloop's AI travel planner. Your ONLY job is to create a

@@ -2,7 +2,7 @@ require("dotenv").config();
 const http = require("http");
 const app = require("./app");
 const initSocket = require("./socket/index");
-require("./services/alertCron");
+// The alertCron.js require has been removed as it was a duplicate of alertService.js
 const PORT = process.env.PORT || 3000;
 
 const httpServer = http.createServer(app);

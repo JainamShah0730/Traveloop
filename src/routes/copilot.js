@@ -1,6 +1,7 @@
 const express = require("express");
 const auth = require("../middleware/auth");
 const prisma = require("../db");
+const requireAdmin = require("../middleware/requireAdmin");
 const { generateItinerary, generateFlightHotelOptions, generateMealsOnly } = require("../services/AIService");
 const { buildMealConstraintText } = require("../utils/mealUtils");
 
@@ -213,7 +214,7 @@ router.post("/save/:id", auth, async (req, res) => {
   }
 });
 
-router.post("/package/:id", auth, async (req, res) => {
+router.post("/package/:id", auth, requireAdmin, async (req, res) => {
   try {
     const aiRecord = await prisma.aiItinerary.findUnique({
       where: { id: req.params.id }
@@ -399,12 +400,24 @@ router.post("/:id/regenerate-meals", auth, async (req, res) => {
 
 router.patch("/share/:id", auth, async (req, res) => {
   try {
+    const aiRecord = await prisma.aiItinerary.findUnique({
+      where: { id: req.params.id }
+    });
+    
+    if (!aiRecord) {
+      return res.status(404).json({ error: "Not found" });
+    }
+    
+    if (aiRecord.userId !== req.user.id) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+
     const { isShared } = req.body;
-    const aiRecord = await prisma.aiItinerary.update({
+    const updatedRecord = await prisma.aiItinerary.update({
       where: { id: req.params.id },
       data: { isShared }
     });
-    return res.status(200).json(aiRecord);
+    return res.status(200).json(updatedRecord);
   } catch (error) {
     console.error("Share error:", error);
     return res.status(500).json({ error: "Failed to update share status" });

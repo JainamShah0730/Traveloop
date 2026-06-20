@@ -1,11 +1,12 @@
 const express = require("express");
 const auth = require("../middleware/auth");
+const requireAdmin = require("../middleware/requireAdmin");
 
 const router = express.Router();
 const prisma = require("../db");
 
 // GET /api/admin/stats
-router.get("/stats", auth, async (req, res) => {
+router.get("/stats", auth, requireAdmin, async (req, res) => {
   try {
     const usersCount = await prisma.user.count();
     const tripsCount = await prisma.trip.count();

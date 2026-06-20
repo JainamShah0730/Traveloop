@@ -1,6 +1,7 @@
 const express = require("express");
 const auth = require("../middleware/auth");
 const db = require("../db");
+const { canAccessTrip } = require("../utils/tripAccess");
 
 const router = express.Router();
 
@@ -15,6 +16,10 @@ router.post('/', auth, async (req, res) => {
     if (!tripId || !title || !amount || !paidByTravelerId) {
       return res.status(400).json({ error: 'tripId, title, amount, paidByTravelerId required' });
     }
+
+    // Access check
+    const { allowed } = await canAccessTrip(tripId, req.user.id);
+    if (!allowed) return res.status(403).json({ error: 'Forbidden' });
 
     // STEP 1: Get ALL travelers on this trip
     const travelers = await db.tripTraveler.findMany({
@@ -92,6 +97,12 @@ router.post('/', auth, async (req, res) => {
 // GET /api/expenses/trip/:tripId
 router.get('/trip/:tripId', auth, async (req, res) => {
   try {
+    const { tripId } = req.params;
+    
+    // Access check
+    const { allowed } = await canAccessTrip(tripId, req.user.id);
+    if (!allowed) return res.status(403).json({ error: 'Forbidden' });
+
     const expenses = await db.expense.findMany({
       where: { tripId: req.params.tripId },
       orderBy: { date: 'desc' },
@@ -121,6 +132,10 @@ router.get('/trip/:tripId/balances', auth, async (req, res) => {
   try {
     const tripId = req.params.tripId;
 
+    // Access check
+    const { allowed } = await canAccessTrip(tripId, req.user.id);
+    if (!allowed) return res.status(403).json({ error: 'Forbidden' });
+
     // Get all travelers
     let travelers = await db.tripTraveler.findMany({
       where: { tripId },
@@ -129,14 +144,14 @@ router.get('/trip/:tripId/balances', auth, async (req, res) => {
 
     // Auto-heal: If no travelers exist for this trip (created before fix), add the owner
     if (travelers.length === 0) {
-      const trip = await db.trip.findUnique({ where: { id: tripId }, include: { user: true } });
-      if (trip && trip.user) {
+      const dbTrip = await db.trip.findUnique({ where: { id: tripId }, include: { user: true } });
+      if (dbTrip && dbTrip.user) {
         const newTraveler = await db.tripTraveler.create({
           data: {
             tripId,
             isOwner: true,
-            name: trip.user.name,
-            email: trip.user.email
+            name: dbTrip.user.name,
+            email: dbTrip.user.email
           }
         });
         travelers = [newTraveler];
@@ -192,6 +207,15 @@ router.post('/settle', auth, async (req, res) => {
   try {
     const { tripId, fromTravelerId, toTravelerId, amount } = req.body;
 
+    // Validate
+    if (!tripId || !fromTravelerId || !toTravelerId || amount === undefined) {
+      return res.status(400).json({ error: 'tripId, fromTravelerId, toTravelerId, amount required' });
+    }
+
+    // Access check
+    const { allowed } = await canAccessTrip(tripId, req.user.id);
+    if (!allowed) return res.status(403).json({ error: 'Forbidden' });
+
     // Mark all ExpenseParticipant records from this traveler as settled
     await db.expenseParticipant.updateMany({
       where: {
@@ -224,8 +248,9 @@ router.delete("/:id", auth, async (req, res) => {
     
     if (!expense) return res.status(404).json({ error: "Not found" });
     
-    // Assuming the user needs to be the trip owner to delete (or we skip strict auth for this rebuild)
-    if (expense.trip.user_id !== req.user.id) {
+    // Checking access
+    const { allowed } = await canAccessTrip(expense.tripId, req.user.id);
+    if (!allowed) {
       return res.status(403).json({ error: "Forbidden" });
     }
 
