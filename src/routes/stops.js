@@ -2,6 +2,27 @@ const express = require("express");
 const auth = require("../middleware/auth");
 
 const router = express.Router();
+
+function mapActivityDTO(act) {
+  return {
+    name: act.name,
+    description: act.notes,
+    time: act.duration_mins,
+    location: act.type
+  };
+}
+
+function mapStopDTO(stop) {
+  return {
+    city_name: stop.city_name,
+    country: stop.country,
+    lat: stop.lat,
+    lng: stop.lng,
+    from_date: stop.from_date,
+    to_date: stop.to_date,
+    activities: stop.activities ? stop.activities.map(mapActivityDTO) : []
+  };
+}
 const prisma = require("../db");
 
 async function verifyTripAccess(tripId, userId) {
@@ -45,7 +66,7 @@ router.post("/:tripId/stops", auth, async (req, res) => {
         id: true, city_name: true, country: true, lat: true, lng: true, from_date: true, to_date: true, order_index: true
       }
     });
-    return res.status(201).json(stop);
+    return res.status(201).json(mapStopDTO(stop));
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: "Internal server error." });
@@ -104,7 +125,7 @@ router.post("/:tripId/stops/ai", auth, async (req, res) => {
         }
       }
     });
-    return res.status(201).json(stop);
+    return res.status(201).json(mapStopDTO(stop));
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: "Internal server error." });
@@ -136,7 +157,7 @@ router.put("/:id", auth, async (req, res) => {
         id: true, city_name: true, country: true, lat: true, lng: true, from_date: true, to_date: true, order_index: true
       }
     });
-    return res.status(200).json(updated);
+    return res.status(200).json(mapStopDTO(updated));
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: "Internal server error." });

@@ -4,6 +4,15 @@ const auth = require("../middleware/auth");
 const router = express.Router();
 const prisma = require("../db");
 
+function mapActivityDTO(act) {
+  return {
+    name: act.name,
+    description: act.notes,
+    time: act.duration_mins,
+    location: act.type
+  };
+}
+
 async function verifyStopAccess(stopId, userId) {
   const stop = await prisma.stop.findUnique({
     where: { id: stopId },
@@ -38,7 +47,7 @@ router.post("/:stopId/activities", auth, async (req, res) => {
         id: true, name: true, type: true, cost: true, duration_mins: true, notes: true, is_paid: true
       }
     });
-    return res.status(201).json(activity);
+    return res.status(201).json(mapActivityDTO(activity));
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: "Internal server error." });
@@ -73,7 +82,7 @@ router.put("/:id", auth, async (req, res) => {
         id: true, name: true, type: true, cost: true, duration_mins: true, notes: true, is_paid: true
       }
     });
-    return res.status(200).json(updated);
+    return res.status(200).json(mapActivityDTO(updated));
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: "Internal server error." });
@@ -123,7 +132,7 @@ router.patch("/:id/toggle-paid", auth, async (req, res) => {
         id: true, name: true, type: true, cost: true, duration_mins: true, notes: true, is_paid: true
       }
     });
-    return res.status(200).json(updated);
+    return res.status(200).json(mapActivityDTO(updated));
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: "Internal server error." });

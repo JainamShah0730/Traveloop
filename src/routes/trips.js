@@ -6,6 +6,38 @@ const prisma = require("../db");
 
 const { canAccessTrip: canAccess } = require("../utils/tripAccess");
 
+function mapActivityDTO(act) {
+  return {
+    name: act.name,
+    description: act.notes,
+    time: act.duration_mins,
+    location: act.type
+  };
+}
+
+function mapStopDTO(stop) {
+  return {
+    city_name: stop.city_name,
+    country: stop.country,
+    lat: stop.lat,
+    lng: stop.lng,
+    from_date: stop.from_date,
+    to_date: stop.to_date,
+    activities: stop.activities ? stop.activities.map(mapActivityDTO) : []
+  };
+}
+
+function mapTripDTO(trip) {
+  return {
+    name: trip.name,
+    cover_photo: trip.cover_photo,
+    start_date: trip.start_date,
+    end_date: trip.end_date,
+    total_budget: trip.total_budget,
+    stops: trip.stops ? trip.stops.map(mapStopDTO) : []
+  };
+}
+
 router.get("/", auth, async (req, res) => {
   try {
     const trips = await prisma.trip.findMany({
@@ -39,13 +71,7 @@ router.get("/", auth, async (req, res) => {
       if (c.tripId) countMap[c.tripId] = c._count.id;
     });
 
-    const result = trips.map((t) => {
-      const stopsCount = t.stops.length;
-      const tCount = Math.max(1, countMap[t.id] || 1);
-      const totalCost = t.stops.reduce((s, st) => s + st.activities.reduce((a, ac) => a + ac.cost, 0), 0) * tCount;
-      const { stops, ...data } = t;
-      return { ...data, stops_count: stopsCount, total_activities_cost: totalCost, travelersCount: tCount };
-    });
+    const result = trips.map(mapTripDTO);
     return res.status(200).json(result);
   } catch (err) {
     console.error(err);
@@ -137,7 +163,7 @@ router.post("/", auth, async (req, res) => {
       });
     }
 
-    return res.status(201).json(trip);
+    return res.status(201).json(mapTripDTO(trip));
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: "Internal server error." });
@@ -185,42 +211,7 @@ router.get("/:id", auth, async (req, res) => {
       },
     });
 
-    const travelersCount = await prisma.tripTraveler.count({
-      where: { tripId: req.params.id }
-    });
-
-    const responseData = {
-      ...full,
-      tripId: full.id,
-      title: full.name,
-      destination: full.stops[0]?.city_name || 'Destination',
-      startDate: full.start_date,
-      endDate: full.end_date,
-      travelersCount: Math.max(1, travelersCount),
-      stops: full.stops.map(stop => {
-        const daysMap = {};
-        stop.activities.forEach(act => {
-          let dayNum = 1;
-          const match = act.notes?.match(/Day (\d+)/i);
-          if (match) dayNum = parseInt(match[1]);
-          if (!daysMap[dayNum]) daysMap[dayNum] = [];
-          daysMap[dayNum].push(act);
-        });
-        const days = Object.keys(daysMap).sort((a,b) => Number(a)-Number(b)).map(dayNumber => ({
-          dayNumber: parseInt(dayNumber),
-          activities: daysMap[dayNumber]
-        }));
-        
-        return {
-          ...stop,
-          stopId: stop.id,
-          city: stop.city_name,
-          days
-        };
-      })
-    };
-
-    return res.status(200).json(responseData);
+    return res.status(200).json(mapTripDTO(full));
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: "Internal server error." });
@@ -247,7 +238,7 @@ router.put("/:id", auth, async (req, res) => {
         id: true, name: true, cover_photo: true, start_date: true, end_date: true, total_budget: true, is_public: true, slug: true
       }
     });
-    return res.status(200).json(updated);
+    return res.status(200).json(mapTripDTO(updated));
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: "Internal server error." });
@@ -357,7 +348,7 @@ router.patch("/:id", auth, async (req, res) => {
       }
     });
 
-    return res.status(200).json(finalTrip);
+    return res.status(200).json(mapTripDTO(finalTrip));
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: "Internal server error." });
@@ -447,7 +438,7 @@ router.get("/public/:slug", async (req, res) => {
     });
     if (!trip) return res.status(404).json({ error: "Trip not found." });
     if (!trip.is_public) return res.status(403).json({ error: "Not public." });
-    return res.status(200).json(trip);
+    return res.status(200).json(mapTripDTO(trip));
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: "Internal server error." });
@@ -500,7 +491,7 @@ router.post("/public/:slug/copy", auth, async (req, res) => {
         }
       },
     });
-    return res.status(201).json(newTrip);
+    return res.status(201).json(mapTripDTO(newTrip));
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: "Internal server error." });
@@ -614,7 +605,7 @@ router.post("/:tripId/generate-itinerary", auth, async (req, res) => {
       data: { total_budget: totalNewBudget }
     });
 
-    return res.status(200).json(createdStops);
+    return res.status(200).json(createdStops.map(mapStopDTO));
   } catch (err) {
     console.error("Generate itinerary error:", err);
     return res.status(500).json({ error: "Failed to generate itinerary." });
