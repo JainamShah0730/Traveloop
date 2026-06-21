@@ -6,6 +6,7 @@ const prisma = require("../db");
 
 function mapActivityDTO(act) {
   return {
+    id: act.id,
     name: act.name,
     description: act.notes,
     time: act.duration_mins,

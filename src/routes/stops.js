@@ -5,6 +5,7 @@ const router = express.Router();
 
 function mapActivityDTO(act) {
   return {
+    id: act.id,
     name: act.name,
     description: act.notes,
     time: act.duration_mins,
@@ -14,6 +15,7 @@ function mapActivityDTO(act) {
 
 function mapStopDTO(stop) {
   return {
+    id: stop.id,
     city_name: stop.city_name,
     country: stop.country,
     lat: stop.lat,
