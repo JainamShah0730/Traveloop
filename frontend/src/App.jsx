@@ -34,13 +34,18 @@ export default function App() {
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
-    if (storedUser) {
+    const token = localStorage.getItem('token');
+    
+    if (storedUser && token) {
       try {
         setUser(JSON.parse(storedUser));
       } catch (e) {
         localStorage.removeItem('user');
         localStorage.removeItem('token');
       }
+    } else {
+      localStorage.removeItem('user');
+      localStorage.removeItem('token');
     }
     setIsAuthChecking(false);
   }, []);

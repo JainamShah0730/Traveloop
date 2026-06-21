@@ -369,7 +369,7 @@ export default function TimelineView({
       </div>
 
       {/* Map */}
-      <div className="mb-6 rounded-2xl overflow-hidden shadow-md border border-slate-100 h-56 flex-shrink-0">
+      <div className="relative z-0 mb-6 rounded-2xl overflow-hidden shadow-md border border-slate-100 h-56 flex-shrink-0">
         <MapContainer
           center={[activeStop?.lat || 20, activeStop?.lng || 77]}
           zoom={13}

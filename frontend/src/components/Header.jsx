@@ -83,6 +83,8 @@ export default function Header({ currentScreen, setCurrentScreen }) {
       if (res.ok) {
         const data = await res.json();
         setReminders(data);
+      } else if (res.status === 401) {
+        handleLogout();
       }
     } catch (err) {
       console.error('Failed to fetch reminders', err);
