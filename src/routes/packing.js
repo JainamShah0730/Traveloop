@@ -24,7 +24,8 @@ router.get("/:tripId", auth, async (req, res) => {
 
     const items = await prisma.packingItem.findMany({
       where: { trip_id: req.params.tripId },
-      orderBy: { category: 'asc' }
+      orderBy: { category: 'asc' },
+      select: { id: true, name: true, category: true, is_checked: true }
     });
     return res.status(200).json(items);
   } catch (err) {
@@ -48,7 +49,8 @@ router.post("/:tripId", auth, async (req, res) => {
         name,
         category,
         is_checked: false
-      }
+      },
+      select: { id: true, name: true, category: true, is_checked: true }
     });
     return res.status(201).json(item);
   } catch (err) {
@@ -68,7 +70,8 @@ router.put("/:id/toggle", auth, async (req, res) => {
 
     const updated = await prisma.packingItem.update({
       where: { id: req.params.id },
-      data: { is_checked: !item.is_checked }
+      data: { is_checked: !item.is_checked },
+      select: { id: true, name: true, category: true, is_checked: true }
     });
     return res.status(200).json(updated);
   } catch (err) {

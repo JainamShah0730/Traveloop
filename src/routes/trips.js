@@ -15,7 +15,16 @@ router.get("/", auth, async (req, res) => {
           { collaborators: { some: { user_id: req.user.id } } },
         ],
       },
-      include: { stops: { include: { activities: { select: { cost: true } } } } },
+      select: {
+        id: true,
+        name: true,
+        cover_photo: true,
+        start_date: true,
+        end_date: true,
+        total_budget: true,
+        is_public: true,
+        stops: { select: { id: true, activities: { select: { cost: true } } } }
+      },
       orderBy: { created_at: "desc" },
     });
     const tripIds = trips.map(t => t.id);
@@ -87,6 +96,15 @@ router.post("/", auth, async (req, res) => {
 
     const trip = await prisma.trip.create({
       data: tripData,
+      select: {
+        id: true,
+        name: true,
+        cover_photo: true,
+        start_date: true,
+        end_date: true,
+        total_budget: true,
+        is_public: true
+      }
     });
     
     // Create travelers from travelersList or default
@@ -133,10 +151,37 @@ router.get("/:id", auth, async (req, res) => {
     if (!allowed) return res.status(403).json({ error: "Forbidden." });
     const full = await prisma.trip.findUnique({
       where: { id: req.params.id },
-      include: {
-        stops: { orderBy: { order_index: "asc" }, include: { activities: { orderBy: { created_at: "asc" } } } },
-        collaborators: { include: { user: { select: { id: true, name: true, email: true, avatar_url: true } } } },
-        packing_items: true, notes: true,
+      select: {
+        id: true,
+        name: true,
+        cover_photo: true,
+        start_date: true,
+        end_date: true,
+        total_budget: true,
+        is_public: true,
+        slug: true,
+        stops: { 
+          orderBy: { order_index: "asc" }, 
+          select: { 
+            id: true, city_name: true, country: true, lat: true, lng: true, from_date: true, to_date: true, order_index: true,
+            activities: { 
+              orderBy: { created_at: "asc" },
+              select: { id: true, name: true, type: true, cost: true, duration_mins: true, notes: true, is_paid: true }
+            } 
+          } 
+        },
+        collaborators: { 
+          select: { 
+            id: true, role: true, 
+            user: { select: { id: true, name: true, email: true, avatar_url: true } } 
+          } 
+        },
+        packing_items: {
+          select: { id: true, item: true, is_packed: true, category: true, is_essential: true }
+        },
+        notes: {
+          select: { id: true, title: true, type: true, content: true, has_reminder: true, reminder_time: true, is_read: true }
+        }
       },
     });
 
@@ -198,6 +243,9 @@ router.put("/:id", auth, async (req, res) => {
         ...(total_budget !== undefined && { total_budget }),
         ...(is_public !== undefined && { is_public }),
       },
+      select: {
+        id: true, name: true, cover_photo: true, start_date: true, end_date: true, total_budget: true, is_public: true, slug: true
+      }
     });
     return res.status(200).json(updated);
   } catch (err) {
@@ -294,8 +342,18 @@ router.patch("/:id", auth, async (req, res) => {
 
     const finalTrip = await prisma.trip.findUnique({
       where: { id: req.params.id },
-      include: {
-        stops: { orderBy: { order_index: "asc" }, include: { activities: { orderBy: { created_at: "asc" } } } }
+      select: {
+        id: true, name: true, cover_photo: true, start_date: true, end_date: true, total_budget: true, is_public: true, slug: true,
+        stops: { 
+          orderBy: { order_index: "asc" }, 
+          select: { 
+            id: true, city_name: true, country: true, lat: true, lng: true, from_date: true, to_date: true, order_index: true,
+            activities: { 
+              orderBy: { created_at: "asc" },
+              select: { id: true, name: true, type: true, cost: true, duration_mins: true, notes: true, is_paid: true }
+            } 
+          } 
+        }
       }
     });
 
@@ -326,7 +384,16 @@ router.get("/:id/budget", auth, async (req, res) => {
     if (!allowed) return res.status(403).json({ error: "Forbidden." });
     const full = await prisma.trip.findUnique({
       where: { id: req.params.id },
-      include: { stops: { include: { activities: true, budgets: true } } },
+      select: { 
+        total_budget: true,
+        stops: { 
+          select: { 
+            id: true, city_name: true, 
+            activities: { select: { type: true, cost: true } }, 
+            budgets: { select: { amount: true } } 
+          } 
+        } 
+      },
     });
     const travelersCount = await prisma.tripTraveler.count({
       where: { tripId: req.params.id }
@@ -363,7 +430,20 @@ router.get("/public/:slug", async (req, res) => {
   try {
     const trip = await prisma.trip.findUnique({
       where: { slug: req.params.slug },
-      include: { stops: { orderBy: { order_index: "asc" }, include: { activities: { orderBy: { created_at: "asc" } } } }, user: { select: { id: true, name: true, avatar_url: true } } },
+      select: {
+        id: true, name: true, cover_photo: true, start_date: true, end_date: true, total_budget: true, is_public: true, slug: true,
+        stops: { 
+          orderBy: { order_index: "asc" }, 
+          select: { 
+            id: true, city_name: true, country: true, lat: true, lng: true, from_date: true, to_date: true, order_index: true,
+            activities: { 
+              orderBy: { created_at: "asc" },
+              select: { id: true, name: true, type: true, cost: true, duration_mins: true, notes: true, is_paid: true }
+            } 
+          } 
+        },
+        user: { select: { id: true, name: true, avatar_url: true } }
+      }
     });
     if (!trip) return res.status(404).json({ error: "Trip not found." });
     if (!trip.is_public) return res.status(403).json({ error: "Not public." });
@@ -378,7 +458,17 @@ router.post("/public/:slug/copy", auth, async (req, res) => {
   try {
     const orig = await prisma.trip.findUnique({
       where: { slug: req.params.slug },
-      include: { stops: { include: { activities: true } } },
+      select: {
+        name: true, cover_photo: true, start_date: true, end_date: true, total_budget: true, is_public: true,
+        stops: { 
+          select: { 
+            city_name: true, country: true, lat: true, lng: true, from_date: true, to_date: true, order_index: true,
+            activities: { 
+              select: { name: true, type: true, cost: true, duration_mins: true, notes: true }
+            } 
+          } 
+        }
+      },
     });
     if (!orig) return res.status(404).json({ error: "Trip not found." });
     if (!orig.is_public) return res.status(403).json({ error: "Not public." });
@@ -396,7 +486,19 @@ router.post("/public/:slug/copy", auth, async (req, res) => {
           })),
         },
       },
-      include: { stops: { include: { activities: true } } },
+      select: {
+        id: true, name: true, cover_photo: true, start_date: true, end_date: true, total_budget: true, is_public: true, slug: true,
+        stops: { 
+          orderBy: { order_index: "asc" }, 
+          select: { 
+            id: true, city_name: true, country: true, lat: true, lng: true, from_date: true, to_date: true, order_index: true,
+            activities: { 
+              orderBy: { created_at: "asc" },
+              select: { id: true, name: true, type: true, cost: true, duration_mins: true, notes: true, is_paid: true }
+            } 
+          } 
+        }
+      },
     });
     return res.status(201).json(newTrip);
   } catch (err) {
@@ -496,7 +598,12 @@ router.post("/:tripId/generate-itinerary", auth, async (req, res) => {
             })
           }
         },
-        include: { activities: true }
+        select: {
+          id: true, city_name: true, country: true, lat: true, lng: true, from_date: true, to_date: true, order_index: true,
+          activities: { 
+            select: { id: true, name: true, type: true, cost: true, duration_mins: true, notes: true, is_paid: true }
+          }
+        }
       });
       createdStops.push(stop);
     }

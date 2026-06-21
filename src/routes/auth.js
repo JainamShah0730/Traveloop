@@ -17,7 +17,7 @@ function signToken(user) {
 
 // ── Helper: strip password_hash from user object ──────────────
 function sanitiseUser(user) {
-  const { password_hash, ...safe } = user;
+  const { password_hash, created_at, updated_at, provider, ...safe } = user;
   return safe;
 }
 

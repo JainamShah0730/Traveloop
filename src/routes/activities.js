@@ -34,6 +34,9 @@ router.post("/:stopId/activities", auth, async (req, res) => {
         duration_mins: duration_mins || 60,
         notes: notes || null,
       },
+      select: {
+        id: true, name: true, type: true, cost: true, duration_mins: true, notes: true, is_paid: true
+      }
     });
     return res.status(201).json(activity);
   } catch (err) {
@@ -66,6 +69,9 @@ router.put("/:id", auth, async (req, res) => {
         ...(duration_mins !== undefined && { duration_mins }),
         ...(notes !== undefined && { notes }),
       },
+      select: {
+        id: true, name: true, type: true, cost: true, duration_mins: true, notes: true, is_paid: true
+      }
     });
     return res.status(200).json(updated);
   } catch (err) {
@@ -113,6 +119,9 @@ router.patch("/:id/toggle-paid", auth, async (req, res) => {
     const updated = await prisma.activity.update({
       where: { id: req.params.id },
       data: { is_paid: !activity.is_paid },
+      select: {
+        id: true, name: true, type: true, cost: true, duration_mins: true, notes: true, is_paid: true
+      }
     });
     return res.status(200).json(updated);
   } catch (err) {

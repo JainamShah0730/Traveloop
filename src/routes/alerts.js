@@ -28,6 +28,9 @@ router.post('/', requireAuth, async (req, res) => {
         target_price,
         notify_email,
         status: 'active'
+      },
+      select: {
+        id: true, alert_type: true, origin: true, destination: true, travel_date: true, hotel_id: true, checkin_date: true, checkout_date: true, current_price: true, target_price: true, notify_email: true, status: true
       }
     });
 
@@ -43,7 +46,10 @@ router.get('/', requireAuth, async (req, res) => {
   try {
     const alerts = await prisma.priceAlert.findMany({
       where: { user_id: req.user.id },
-      orderBy: { created_at: 'desc' }
+      orderBy: { created_at: 'desc' },
+      select: {
+        id: true, alert_type: true, origin: true, destination: true, travel_date: true, hotel_id: true, checkin_date: true, checkout_date: true, current_price: true, target_price: true, notify_email: true, status: true
+      }
     });
     res.status(200).json(alerts);
   } catch (error) {
@@ -81,7 +87,10 @@ router.patch('/:id', requireAuth, async (req, res) => {
 
     const updated = await prisma.priceAlert.update({
       where: { id },
-      data: { target_price }
+      data: { target_price },
+      select: {
+        id: true, alert_type: true, origin: true, destination: true, travel_date: true, hotel_id: true, checkin_date: true, checkout_date: true, current_price: true, target_price: true, notify_email: true, status: true
+      }
     });
     
     res.status(200).json(updated);

@@ -17,7 +17,11 @@ router.post("/", auth, async (req, res) => {
           create: options.map(opt => ({ label: opt }))
         }
       },
-      include: { options: true }
+      select: {
+        id: true, question: true, type: true, status: true, createdAt: true,
+        options: { select: { id: true, label: true, votes: { select: { userId: true } } } },
+        votes: { select: { userId: true, optionId: true } }
+      }
     });
 
     // Create Notification Note
@@ -43,11 +47,10 @@ router.get("/trip/:tripId", auth, async (req, res) => {
   try {
     const polls = await prisma.poll.findMany({
       where: { tripId: req.params.tripId },
-      include: {
-        options: {
-          include: { votes: true }
-        },
-        votes: true
+      select: {
+        id: true, question: true, type: true, status: true, createdAt: true,
+        options: { select: { id: true, label: true, votes: { select: { userId: true } } } },
+        votes: { select: { userId: true, optionId: true } }
       },
       orderBy: { createdAt: "desc" }
     });
@@ -80,9 +83,10 @@ router.post("/:pollId/vote", auth, async (req, res) => {
 
     const poll = await prisma.poll.findUnique({
       where: { id: pollId },
-      include: {
-        options: { include: { votes: true } },
-        votes: true
+      select: {
+        id: true, question: true, type: true, status: true, createdAt: true,
+        options: { select: { id: true, label: true, votes: { select: { userId: true } } } },
+        votes: { select: { userId: true, optionId: true } }
       }
     });
 
@@ -97,7 +101,12 @@ router.patch("/:pollId/close", auth, async (req, res) => {
   try {
     const poll = await prisma.poll.update({
       where: { id: req.params.pollId },
-      data: { status: "closed" }
+      data: { status: "closed" },
+      select: {
+        id: true, question: true, type: true, status: true, createdAt: true,
+        options: { select: { id: true, label: true, votes: { select: { userId: true } } } },
+        votes: { select: { userId: true, optionId: true } }
+      }
     });
     return res.status(200).json(poll);
   } catch (error) {

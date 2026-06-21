@@ -41,6 +41,9 @@ router.post("/:tripId/stops", auth, async (req, res) => {
         from_date: new Date(from_date), to_date: new Date(to_date),
         order_index,
       },
+      select: {
+        id: true, city_name: true, country: true, lat: true, lng: true, from_date: true, to_date: true, order_index: true
+      }
     });
     return res.status(201).json(stop);
   } catch (err) {
@@ -94,7 +97,12 @@ router.post("/:tripId/stops/ai", auth, async (req, res) => {
           }))
         }
       },
-      include: { activities: true }
+      select: {
+        id: true, city_name: true, country: true, lat: true, lng: true, from_date: true, to_date: true, order_index: true,
+        activities: {
+          select: { id: true, name: true, type: true, cost: true, duration_mins: true, notes: true, is_paid: true }
+        }
+      }
     });
     return res.status(201).json(stop);
   } catch (err) {
@@ -124,6 +132,9 @@ router.put("/:id", auth, async (req, res) => {
         ...(to_date !== undefined && { to_date: new Date(to_date) }),
         ...(order_index !== undefined && { order_index }),
       },
+      select: {
+        id: true, city_name: true, country: true, lat: true, lng: true, from_date: true, to_date: true, order_index: true
+      }
     });
     return res.status(200).json(updated);
   } catch (err) {

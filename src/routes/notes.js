@@ -38,14 +38,18 @@ router.get("/user/reminders", auth, async (req, res) => {
         has_reminder: true,
         is_read: false
       },
-      orderBy: { reminder_time: 'asc' }
+      orderBy: { reminder_time: 'asc' },
+      select: { id: true, title: true, type: true, content: true, has_reminder: true, reminder_time: true, is_read: true, trip_id: true }
     });
 
-    // Attach trip name for context
-    const enrichedReminders = reminders.map(r => ({
-      ...r,
-      tripName: trips.find(t => t.id === r.trip_id)?.name || 'Unknown Trip'
-    }));
+    // Attach trip name for context and strip internal trip_id
+    const enrichedReminders = reminders.map(r => {
+      const { trip_id, ...safe } = r;
+      return {
+        ...safe,
+        tripName: trips.find(t => t.id === trip_id)?.name || 'Unknown Trip'
+      };
+    });
 
     return res.status(200).json(enrichedReminders);
   } catch (err) {
@@ -62,7 +66,8 @@ router.get("/:tripId", auth, async (req, res) => {
 
     const notes = await prisma.note.findMany({
       where: { trip_id: req.params.tripId },
-      orderBy: { updated_at: 'desc' }
+      orderBy: { updated_at: 'desc' },
+      select: { id: true, title: true, type: true, content: true, has_reminder: true, reminder_time: true, is_read: true }
     });
     return res.status(200).json(notes);
   } catch (err) {
@@ -88,7 +93,8 @@ router.post("/:tripId", auth, async (req, res) => {
         content,
         has_reminder: has_reminder || false,
         reminder_time: reminder_time ? new Date(reminder_time) : null
-      }
+      },
+      select: { id: true, title: true, type: true, content: true, has_reminder: true, reminder_time: true, is_read: true }
     });
     return res.status(201).json(note);
   } catch (err) {
@@ -118,7 +124,8 @@ router.put("/:id", auth, async (req, res) => {
 
     const updated = await prisma.note.update({
       where: { id: req.params.id },
-      data: dataToUpdate
+      data: dataToUpdate,
+      select: { id: true, title: true, type: true, content: true, has_reminder: true, reminder_time: true, is_read: true }
     });
     return res.status(200).json(updated);
   } catch (err) {

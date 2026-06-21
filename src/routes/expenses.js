@@ -79,9 +79,10 @@ router.post('/', auth, async (req, res) => {
             }))
           }
         },
-        include: {
-          participants: { include: { traveler: true } },
-          paidBy: true
+        select: {
+          id: true, title: true, amount: true, category: true, splitType: true, date: true,
+          participants: { select: { travelerId: true, share: true, settled: true, traveler: { select: { id: true, name: true, isOwner: true } } } },
+          paidBy: { select: { id: true, name: true, isOwner: true } }
         }
       });
       return exp;
@@ -106,17 +107,10 @@ router.get('/trip/:tripId', auth, async (req, res) => {
     const expenses = await db.expense.findMany({
       where: { tripId: req.params.tripId },
       orderBy: { date: 'desc' },
-      include: {
-        paidBy: {
-          select: { id: true, name: true, isOwner: true }
-        },
-        participants: {
-          include: {
-            traveler: {
-              select: { id: true, name: true, isOwner: true }
-            }
-          }
-        }
+      select: {
+        id: true, title: true, amount: true, category: true, splitType: true, date: true,
+        paidBy: { select: { id: true, name: true, isOwner: true } },
+        participants: { select: { travelerId: true, share: true, settled: true, traveler: { select: { id: true, name: true, isOwner: true } } } }
       }
     });
 

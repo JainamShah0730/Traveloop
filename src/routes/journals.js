@@ -26,7 +26,8 @@ router.post("/generate/:tripId", auth, async (req, res) => {
         data: {
           title: journalContent.title,
           story: journalContent.story
-        }
+        },
+        select: { id: true, title: true, story: true, isPublished: true, coverPhoto: true, createdAt: true, updatedAt: true, tripId: true }
       });
     } else {
       journal = await prisma.journal.create({
@@ -36,7 +37,8 @@ router.post("/generate/:tripId", auth, async (req, res) => {
           title: journalContent.title,
           story: journalContent.story,
           isPublished: false
-        }
+        },
+        select: { id: true, title: true, story: true, isPublished: true, coverPhoto: true, createdAt: true, updatedAt: true, tripId: true }
       });
     }
 
@@ -55,11 +57,13 @@ router.post("/", auth, async (req, res) => {
     if (journal) {
       journal = await prisma.journal.update({
         where: { id: journal.id },
-        data: { title, story, isPublished, coverPhoto }
+        data: { title, story, isPublished, coverPhoto },
+        select: { id: true, title: true, story: true, isPublished: true, coverPhoto: true, createdAt: true, updatedAt: true, tripId: true }
       });
     } else {
       journal = await prisma.journal.create({
-        data: { tripId, userId: req.user.id, title, story, isPublished, coverPhoto }
+        data: { tripId, userId: req.user.id, title, story, isPublished, coverPhoto },
+        select: { id: true, title: true, story: true, isPublished: true, coverPhoto: true, createdAt: true, updatedAt: true, tripId: true }
       });
     }
     
@@ -76,7 +80,8 @@ router.patch("/:id/publish", auth, async (req, res) => {
 
     const updated = await prisma.journal.update({
       where: { id: req.params.id },
-      data: { isPublished: !journal.isPublished }
+      data: { isPublished: !journal.isPublished },
+      select: { id: true, title: true, story: true, isPublished: true, coverPhoto: true, createdAt: true, updatedAt: true, tripId: true }
     });
     
     return res.status(200).json(updated);
@@ -89,7 +94,12 @@ router.get("/trip/:tripId", auth, async (req, res) => {
   try {
     const journal = await prisma.journal.findUnique({
       where: { tripId: req.params.tripId },
-      include: { photos: true, trip: true, user: { select: { name: true, avatar_url: true } } }
+      select: { 
+        id: true, title: true, story: true, isPublished: true, coverPhoto: true, createdAt: true, updatedAt: true, tripId: true, userId: true,
+        photos: { select: { id: true, url: true, caption: true } }, 
+        trip: { select: { id: true, name: true, start_date: true, end_date: true, cover_photo: true } }, 
+        user: { select: { name: true, avatar_url: true } } 
+      }
     });
     
     if (!journal) return res.status(404).json({ error: "Not found" });
@@ -108,7 +118,10 @@ router.get("/my", auth, async (req, res) => {
     const journals = await prisma.journal.findMany({
       where: { userId: req.user.id },
       orderBy: { createdAt: "desc" },
-      include: { trip: true }
+      select: { 
+        id: true, title: true, story: true, isPublished: true, coverPhoto: true, createdAt: true, updatedAt: true, tripId: true,
+        trip: { select: { id: true, name: true, cover_photo: true } } 
+      }
     });
     return res.status(200).json(journals);
   } catch (error) {
@@ -120,7 +133,12 @@ router.get("/:id", auth, async (req, res) => {
   try {
     const journal = await prisma.journal.findUnique({
       where: { id: req.params.id },
-      include: { photos: true, trip: true, user: { select: { name: true, avatar_url: true } } }
+      select: { 
+        id: true, title: true, story: true, isPublished: true, coverPhoto: true, createdAt: true, updatedAt: true, tripId: true, userId: true,
+        photos: { select: { id: true, url: true, caption: true } }, 
+        trip: { select: { id: true, name: true, start_date: true, end_date: true, cover_photo: true } }, 
+        user: { select: { name: true, avatar_url: true } } 
+      }
     });
     
     if (!journal) return res.status(404).json({ error: "Not found" });

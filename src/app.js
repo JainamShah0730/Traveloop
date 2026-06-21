@@ -27,6 +27,7 @@
 
 const express = require("express");
 const cors = require("cors");
+const helmet = require("helmet");
 
 const authRouter = require("./routes/auth");
 const tripsRouter = require("./routes/trips");
@@ -56,6 +57,7 @@ const allowedOrigins = process.env.FRONTEND_URL
   ? process.env.FRONTEND_URL.split(",").map((url) => url.trim())
   : ["http://localhost:5173"];
 
+app.use(helmet());
 app.use(
   cors({
     origin: (origin, callback) => {

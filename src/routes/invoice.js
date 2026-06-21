@@ -10,23 +10,28 @@ router.get("/trip/:tripId", auth, async (req, res) => {
     const tripId = req.params.tripId;
 
     // 1. Get trip details
-    const trip = await db.trip.findUnique({ where: { id: tripId } });
+    const trip = await db.trip.findUnique({ 
+      where: { id: tripId },
+      select: { id: true, name: true, start_date: true, end_date: true, total_budget: true }
+    });
     if (!trip) return res.status(404).json({ error: "Trip not found" });
 
     // 2. Get all travelers
     const travelers = await db.tripTraveler.findMany({
       where: { tripId },
-      orderBy: [{ isOwner: "desc" }, { createdAt: "asc" }]
+      orderBy: [{ isOwner: "desc" }, { createdAt: "asc" }],
+      select: { id: true, name: true, email: true, isOwner: true }
     });
 
     // 3. Get all expenses
     const expenses = await db.expense.findMany({
       where: { tripId },
-      include: {
+      orderBy: { date: "asc" },
+      select: {
+        id: true, title: true, amount: true, category: true, date: true, splitType: true, paidById: true,
         paidBy: { select: { name: true } },
-        participants: { include: { traveler: { select: { name: true } } } }
-      },
-      orderBy: { date: "asc" }
+        participants: { select: { travelerId: true, share: true, settled: true, traveler: { select: { name: true } } } }
+      }
     });
 
     // 4. Calculate totals
