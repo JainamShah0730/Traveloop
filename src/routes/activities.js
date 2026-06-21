@@ -8,9 +8,11 @@ function mapActivityDTO(act) {
   return {
     id: act.id,
     name: act.name,
-    description: act.notes,
-    time: act.duration_mins,
-    location: act.type
+    notes: act.notes,
+    duration_mins: act.duration_mins,
+    type: act.type,
+    cost: act.cost,
+    is_paid: act.is_paid
   };
 }
 

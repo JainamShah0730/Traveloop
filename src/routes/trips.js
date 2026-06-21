@@ -10,9 +10,11 @@ function mapActivityDTO(act) {
   return {
     id: act.id,
     name: act.name,
-    description: act.notes,
-    time: act.duration_mins,
-    location: act.type
+    notes: act.notes,
+    duration_mins: act.duration_mins,
+    type: act.type,
+    cost: act.cost,
+    is_paid: act.is_paid
   };
 }
 
@@ -25,11 +27,12 @@ function mapStopDTO(stop) {
     lng: stop.lng,
     from_date: stop.from_date,
     to_date: stop.to_date,
+    order_index: stop.order_index,
     activities: stop.activities ? stop.activities.map(mapActivityDTO) : []
   };
 }
 
-function mapTripDTO(trip) {
+function mapTripDTO(trip, travelersCountOverride = null) {
   return {
     id: trip.id,
     name: trip.name,
@@ -37,7 +40,14 @@ function mapTripDTO(trip) {
     start_date: trip.start_date,
     end_date: trip.end_date,
     total_budget: trip.total_budget,
-    stops: trip.stops ? trip.stops.map(mapStopDTO) : []
+    is_public: trip.is_public,
+    slug: trip.slug,
+    stops: trip.stops ? trip.stops.map(mapStopDTO) : [],
+    collaborators: trip.collaborators,
+    packing_items: trip.packing_items,
+    notes: trip.notes,
+    travelersCount: travelersCountOverride !== null ? travelersCountOverride : (trip.travelersCount || 1),
+    stops_count: trip._count?.stops ?? (trip.stops ? trip.stops.length : 0)
   };
 }
 
@@ -74,7 +84,11 @@ router.get("/", auth, async (req, res) => {
       if (c.tripId) countMap[c.tripId] = c._count.id;
     });
 
-    const result = trips.map(mapTripDTO);
+    const result = trips.map(trip => {
+      const travelers = Math.max(1, countMap[trip.id] || 1);
+      return mapTripDTO(trip, travelers);
+    });
+    
     return res.status(200).json(result);
   } catch (err) {
     console.error(err);
@@ -206,7 +220,7 @@ router.get("/:id", auth, async (req, res) => {
           } 
         },
         packing_items: {
-          select: { id: true, item: true, is_packed: true, category: true, is_essential: true }
+          select: { id: true, name: true, is_checked: true, category: true }
         },
         notes: {
           select: { id: true, title: true, type: true, content: true, has_reminder: true, reminder_time: true, is_read: true }
@@ -214,10 +228,14 @@ router.get("/:id", auth, async (req, res) => {
       },
     });
 
-    return res.status(200).json(mapTripDTO(full));
+    const travelersCount = await prisma.tripTraveler.count({
+      where: { tripId: req.params.id }
+    });
+
+    return res.status(200).json(mapTripDTO(full, Math.max(1, travelersCount)));
   } catch (err) {
-    console.error(err);
-    return res.status(500).json({ error: "Internal server error." });
+    console.error("GET /:id ERROR:", err);
+    return res.status(500).json({ error: "Internal server error.", details: err.message, stack: err.stack });
   }
 });
 
@@ -241,7 +259,12 @@ router.put("/:id", auth, async (req, res) => {
         id: true, name: true, cover_photo: true, start_date: true, end_date: true, total_budget: true, is_public: true, slug: true
       }
     });
-    return res.status(200).json(mapTripDTO(updated));
+
+    const travelersCount = await prisma.tripTraveler.count({
+      where: { tripId: req.params.id }
+    });
+
+    return res.status(200).json(mapTripDTO(updated, Math.max(1, travelersCount)));
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: "Internal server error." });
@@ -351,7 +374,11 @@ router.patch("/:id", auth, async (req, res) => {
       }
     });
 
-    return res.status(200).json(mapTripDTO(finalTrip));
+    const travelersCount = await prisma.tripTraveler.count({
+      where: { tripId: req.params.id }
+    });
+
+    return res.status(200).json(mapTripDTO(finalTrip, Math.max(1, travelersCount)));
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: "Internal server error." });
@@ -441,7 +468,12 @@ router.get("/public/:slug", async (req, res) => {
     });
     if (!trip) return res.status(404).json({ error: "Trip not found." });
     if (!trip.is_public) return res.status(403).json({ error: "Not public." });
-    return res.status(200).json(mapTripDTO(trip));
+
+    const travelersCount = await prisma.tripTraveler.count({
+      where: { tripId: trip.id }
+    });
+
+    return res.status(200).json(mapTripDTO(trip, Math.max(1, travelersCount)));
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: "Internal server error." });

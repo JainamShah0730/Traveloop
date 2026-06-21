@@ -423,15 +423,31 @@ router.post('/trips/from-package', auth, async (req, res) => {
       // STEP 4 — Return the trip with nested data in ONE query
       const fullTrip = await prisma.trip.findUnique({
         where: { id: trip.id },
-        include: {
+        select: {
+          id: true, name: true, cover_photo: true, start_date: true, end_date: true, total_budget: true, is_public: true,
           stops: {
             orderBy: { order_index: 'asc' },
-            include: { activities: true }
+            select: {
+              id: true, city_name: true, country: true, lat: true, lng: true, from_date: true, to_date: true, order_index: true,
+              activities: {
+                orderBy: { created_at: 'asc' },
+                select: { id: true, name: true, type: true, cost: true, duration_mins: true, notes: true, is_paid: true }
+              }
+            }
           }
         }
       });
 
-      return res.status(201).json({ success: true, trip: fullTrip });
+      // Add default empty arrays for relations so frontend doesn't break
+      const tripResponse = {
+        ...fullTrip,
+        collaborators: [],
+        packing_items: [],
+        notes: [],
+        travelersCount: 1
+      };
+
+      return res.status(201).json({ success: true, trip: tripResponse });
     };
 
     await Promise.race([creationLogic(), timeoutPromise]);
@@ -472,7 +488,9 @@ router.post('/trips/:id/regenerate-activities', auth, async (req, res) => {
       return res.status(404).json({ error: 'Trip not found' });
     }
 
-    if (trip.user_id !== req.user.id) {
+    const { canAccessTrip } = require("../utils/tripAccess");
+    const { allowed } = await canAccessTrip(tripId, req.user.id);
+    if (!allowed) {
       return res.status(403).json({ error: 'Not authorized' });
     }
 
@@ -535,15 +553,31 @@ router.post('/trips/:id/regenerate-activities', auth, async (req, res) => {
     // Return updated trip
     const fullTrip = await prisma.trip.findUnique({
       where: { id: tripId },
-      include: {
+      select: {
+        id: true, name: true, cover_photo: true, start_date: true, end_date: true, total_budget: true, is_public: true,
         stops: {
           orderBy: { order_index: 'asc' },
-          include: { activities: true }
+          select: {
+            id: true, city_name: true, country: true, lat: true, lng: true, from_date: true, to_date: true, order_index: true,
+            activities: {
+              orderBy: { created_at: 'asc' },
+              select: { id: true, name: true, type: true, cost: true, duration_mins: true, notes: true, is_paid: true }
+            }
+          }
         }
       }
     });
 
-    return res.status(200).json({ success: true, trip: fullTrip });
+    // Add default empty arrays for relations so frontend doesn't break
+    const tripResponse = {
+      ...fullTrip,
+      collaborators: trip.collaborators || [],
+      packing_items: trip.packing_items || [],
+      notes: trip.notes || [],
+      travelersCount: 1 // If this is used, it should be fetched, but usually this route relies on GET /:id reloading
+    };
+
+    return res.status(200).json({ success: true, trip: tripResponse });
 
   } catch (error) {
     console.error(error);

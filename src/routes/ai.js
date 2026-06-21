@@ -4,6 +4,7 @@ const { suggestActivities, generatePackingList } = require("../services/gemini")
 
 const router = express.Router();
 const prisma = require("../db");
+const { canAccessTrip } = require("../utils/tripAccess");
 
 // POST /api/ai/suggest-activities
 router.post("/suggest-activities", auth, async (req, res) => {
@@ -17,16 +18,13 @@ router.post("/suggest-activities", auth, async (req, res) => {
       where: { id: stopId },
       include: {
         activities: { select: { name: true } },
-        trip: { include: { collaborators: true } },
       },
     });
 
     if (!stop) return res.status(404).json({ error: "Stop not found." });
 
-    const trip = stop.trip;
-    const isOwner = trip.user_id === req.user.id;
-    const isCollab = trip.collaborators.some((c) => c.user_id === req.user.id);
-    if (!isOwner && !isCollab) return res.status(403).json({ error: "Forbidden." });
+    const { allowed } = await canAccessTrip(stop.trip_id, req.user.id);
+    if (!allowed) return res.status(403).json({ error: "Forbidden." });
 
     const existingActivities = stop.activities.map((a) => a.name);
 
@@ -50,19 +48,16 @@ router.post("/packing-list", auth, async (req, res) => {
     const { tripId } = req.body;
     if (!tripId) return res.status(400).json({ error: "tripId required." });
 
+    const { allowed, trip: accessTrip } = await canAccessTrip(tripId, req.user.id);
+    if (!accessTrip) return res.status(404).json({ error: "Trip not found." });
+    if (!allowed) return res.status(403).json({ error: "Forbidden." });
+
     const trip = await prisma.trip.findUnique({
       where: { id: tripId },
       include: {
-        collaborators: true,
         stops: { include: { activities: { select: { type: true } } } },
       },
     });
-
-    if (!trip) return res.status(404).json({ error: "Trip not found." });
-
-    const isOwner = trip.user_id === req.user.id;
-    const isCollab = trip.collaborators.some((c) => c.user_id === req.user.id);
-    if (!isOwner && !isCollab) return res.status(403).json({ error: "Forbidden." });
 
     const destinations = trip.stops.map((s) => s.city_name);
     const activityTypes = [...new Set(trip.stops.flatMap((s) => s.activities.map((a) => a.type)))];

@@ -1,6 +1,7 @@
 const express = require("express");
 const auth = require("../middleware/auth");
 const db = require("../db");
+const { canAccessTrip } = require("../utils/tripAccess");
 
 const router = express.Router();
 
@@ -8,6 +9,9 @@ const router = express.Router();
 router.get("/trip/:tripId", auth, async (req, res) => {
   try {
     const tripId = req.params.tripId;
+
+    const { allowed } = await canAccessTrip(tripId, req.user.id);
+    if (!allowed) return res.status(403).json({ error: "Forbidden." });
 
     // 1. Get trip details
     const trip = await db.trip.findUnique({ 

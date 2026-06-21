@@ -93,7 +93,8 @@ router.post("/generate", auth, async (req, res) => {
         travelers: travelersCount,
         budgetPerPerson,
         data: itinerary
-      }
+      },
+      select: { id: true, destination: true, budget: true, duration: true, travelers: true, budgetPerPerson: true, data: true, createdAt: true, isShared: true, tripId: true }
     });
 
     // Auto-add the logged-in user as traveler[0] (owner)
@@ -124,7 +125,8 @@ router.get("/history", auth, async (req, res) => {
   try {
     const history = await prisma.aiItinerary.findMany({
       where: { userId: req.user.id },
-      orderBy: { createdAt: "desc" }
+      orderBy: { createdAt: "desc" },
+      select: { id: true, destination: true, budget: true, duration: true, travelers: true, budgetPerPerson: true, data: true, createdAt: true, isShared: true, tripId: true }
     });
     return res.status(200).json(history);
   } catch (error) {
@@ -192,6 +194,19 @@ router.post("/save/:id", auth, async (req, res) => {
               })
             }
           }]
+        }
+      },
+      select: {
+        id: true, name: true, cover_photo: true, start_date: true, end_date: true, total_budget: true, is_public: true, slug: true,
+        stops: { 
+          orderBy: { order_index: "asc" }, 
+          select: { 
+            id: true, city_name: true, country: true, lat: true, lng: true, from_date: true, to_date: true, order_index: true,
+            activities: { 
+              orderBy: { created_at: "asc" },
+              select: { id: true, name: true, type: true, cost: true, duration_mins: true, notes: true, is_paid: true }
+            } 
+          } 
         }
       }
     });
@@ -415,7 +430,8 @@ router.patch("/share/:id", auth, async (req, res) => {
     const { isShared } = req.body;
     const updatedRecord = await prisma.aiItinerary.update({
       where: { id: req.params.id },
-      data: { isShared }
+      data: { isShared },
+      select: { id: true, isShared: true }
     });
     return res.status(200).json(updatedRecord);
   } catch (error) {
