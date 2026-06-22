@@ -11,7 +11,7 @@ const { BudgetTool }  = require('./tools/BudgetTool');
 // Use existing DeepSeek client setup from your project
 const client = new OpenAI({
   baseURL: 'https://api.deepseek.com',
-  apiKey:  process.env.DEEPSEEK_API_KEY,
+  apiKey:  process.env.DEEPSEEK_API_KEY || 'missing-key',
 });
 
 // ─── Tool definitions (OpenAI function-calling format) ───────────────────────

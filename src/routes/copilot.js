@@ -8,7 +8,7 @@ const { buildMealConstraintText } = require("../utils/mealUtils");
 const { OpenAI } = require('openai');
 const client = new OpenAI({
   baseURL: 'https://api.deepseek.com',
-  apiKey:  process.env.DEEPSEEK_API_KEY,
+  apiKey:  process.env.DEEPSEEK_API_KEY || 'missing-key',
 });
 
 
