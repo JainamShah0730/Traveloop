@@ -18,6 +18,15 @@ export default {
       boxShadow: {
         'puffy': '0 20px 40px -10px rgba(37, 99, 235, 0.15)',
         'deep': '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+      },
+      keyframes: {
+        'fade-in': {
+          '0%': { opacity: '0', transform: 'translateY(8px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        }
+      },
+      animation: {
+        'fade-in': 'fade-in 0.3s ease-out',
       }
     },
   },

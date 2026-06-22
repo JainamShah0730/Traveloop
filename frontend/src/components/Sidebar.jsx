@@ -13,6 +13,7 @@ import {
   Receipt,
   Users,
   Sparkles,
+  Bot,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -27,6 +28,7 @@ export default function Sidebar({
   const navItems = [
     { id: "dashboard", label: "Dashboard", icon: Home },
     { id: "copilot", label: "AI Copilot", icon: Sparkles },
+    { id: "agent", label: "AI Agent", icon: Bot },
     { id: "packages", label: "Packages", icon: Luggage },
     { id: "myTrips", label: "My Trips", icon: Map },
     { id: "builder", label: "Itinerary", icon: Briefcase },
@@ -48,9 +50,11 @@ export default function Sidebar({
 
       setCurrentScreen(screenId);
 
-      // "packages" has its own route, navigate to it directly
+      // "packages" and "agent" have their own routes
       if (screenId === "packages") {
         navigate("/packages");
+      } else if (screenId === "agent") {
+        navigate("/agent");
       } else {
         // Reset URL to root so the wildcard <Route path="*"> renders via currentScreen
         navigate("/");

@@ -5,6 +5,13 @@ const requireAdmin = require("../middleware/requireAdmin");
 const { generateItinerary, generateFlightHotelOptions, generateMealsOnly } = require("../services/AIService");
 const { buildMealConstraintText } = require("../utils/mealUtils");
 
+const { OpenAI } = require('openai');
+const client = new OpenAI({
+  baseURL: 'https://api.deepseek.com',
+  apiKey:  process.env.DEEPSEEK_API_KEY,
+});
+
+
 const router = express.Router();
 
 router.post("/generate", auth, async (req, res) => {
@@ -437,6 +444,120 @@ router.patch("/share/:id", auth, async (req, res) => {
   } catch (error) {
     console.error("Share error:", error);
     return res.status(500).json({ error: "Failed to update share status" });
+  }
+});
+
+router.post('/save-from-agent', auth, async (req, res) => {
+  const { agentResponse } = req.body;
+  if (!agentResponse) return res.status(400).json({ error: 'agentResponse required' });
+
+  const extractPrompt = `Extract structured trip data from this travel plan text.
+Return ONLY valid JSON. No preamble. No backticks.
+
+Text:
+${agentResponse.slice(0, 3000)}
+
+JSON shape:
+{
+  "destination": "string",
+  "total_days": 5,
+  "budget_per_person": 30000,
+  "cost_breakdown_per_person": {
+    "flights": 9000, "accommodation": 8000,
+    "food": 6000, "activities": 4000, "local_transport": 2000
+  },
+  "days": [{
+    "day": 1, "title": "string",
+    "morning":   { "activity": "string", "cost_per_person": 0,    "tip": "string" },
+    "afternoon": { "activity": "string", "cost_per_person": 0,    "tip": "string" },
+    "evening":   { "activity": "string", "cost_per_person": 0,    "tip": "string" }
+  }],
+  "tips": ["string"]
+}`;
+
+  try {
+    const completion = await client.chat.completions.create({
+      model:      'deepseek-chat',
+      messages:   [{ role: 'user', content: extractPrompt }],
+      max_tokens: 2000,
+    });
+
+    let raw = completion.choices[0].message.content;
+    let tripData;
+    try {
+      tripData = JSON.parse(raw);
+    } catch {
+      tripData = JSON.parse(raw.replace(/```json|```/g, '').trim());
+    }
+
+    const saved = await prisma.aiItinerary.create({
+      data: {
+        userId:      req.user.id,
+        destination: tripData.destination || 'Unknown',
+        duration:    tripData.total_days  || 1,
+        budget:      tripData.budget_per_person || 0,
+        data:        tripData
+      }
+    });
+
+    const name = tripData.destination ? `${tripData.destination} Trip` : "AI Generated Trip";
+    const startDate = new Date();
+    const endDate = new Date(startDate);
+    endDate.setDate(endDate.getDate() + (tripData.total_days || 1) - 1);
+    const slug = name.toLowerCase().replace(/\s+/g, "-") + "-" + Date.now();
+
+    const trip = await prisma.trip.create({
+      data: {
+        user_id: req.user.id,
+        name,
+        start_date: startDate,
+        end_date: endDate,
+        total_budget: tripData.budget_per_person || 0,
+        slug,
+        stops: {
+          create: [{
+            city_name: tripData.destination || 'Unknown',
+            country: "Unknown",
+            lat: 0,
+            lng: 0,
+            from_date: startDate,
+            to_date: endDate,
+            order_index: 0,
+            activities: {
+              create: (tripData.days || []).flatMap((day, idx) => {
+                const dayNum = day.day || idx + 1;
+                const acts = [];
+                if (day.morning?.activity) acts.push({ name: day.morning.activity, type: "sightseeing", cost: day.morning.cost_per_person || day.morning.cost || 0, notes: `Day ${dayNum} Start: 10:00 ${day.morning.tip || ''}`.trim() });
+                if (day.afternoon?.activity) acts.push({ name: day.afternoon.activity, type: "sightseeing", cost: day.afternoon.cost_per_person || day.afternoon.cost || 0, notes: `Day ${dayNum} Start: 14:00 ${day.afternoon.tip || ''}`.trim() });
+                if (day.evening?.activity) acts.push({ name: day.evening.activity, type: "sightseeing", cost: day.evening.cost_per_person || day.evening.cost || 0, notes: `Day ${dayNum} Start: 19:00 ${day.evening.tip || ''}`.trim() });
+                if (day.hotel?.name) acts.push({ name: day.hotel.name, type: "hotel", cost: day.hotel.cost_per_person_per_night || day.hotel.cost_per_night || 0, notes: `Day ${dayNum} Check-in: 15:00` });
+                if (day.meals?.total_food_cost_per_person > 0 || day.meals?.total_food_cost > 0) acts.push({ name: "Meals", type: "food", cost: day.meals.total_food_cost_per_person || day.meals.total_food_cost || 0, notes: `Day ${dayNum} Breakfast: ${day.meals.breakfast || ''}, Lunch: ${day.meals.lunch || ''}, Dinner: ${day.meals.dinner || ''}` });
+                
+                if (dayNum === 1 && tripData.cost_breakdown_per_person?.flights) {
+                  acts.push({
+                    name: "Round-trip Flights",
+                    type: "transport",
+                    cost: Number(tripData.cost_breakdown_per_person.flights) || 0,
+                    notes: `Day 1 Flight Booking`
+                  });
+                }
+                
+                return acts;
+              })
+            }
+          }]
+        }
+      }
+    });
+
+    await prisma.aiItinerary.update({
+      where: { id: saved.id },
+      data: { tripId: trip.id }
+    });
+
+    res.json({ success: true, itineraryId: saved.id, tripId: trip.id });
+  } catch (err) {
+    res.status(500).json({ error: 'Could not save trip: ' + err.message });
   }
 });
 

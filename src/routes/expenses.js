@@ -259,4 +259,90 @@ router.delete("/:id", auth, async (req, res) => {
   }
 });
 
+// ── POST /api/expenses/trip/:tripId/smart-settle ────────────────
+// Calculates the minimum number of transactions to settle all debts
+router.post('/trip/:tripId/smart-settle', auth, async (req, res) => {
+  try {
+    const { tripId } = req.params;
+
+    // Access check
+    const { allowed } = await canAccessTrip(tripId, req.user.id);
+    if (!allowed) return res.status(403).json({ error: 'Forbidden' });
+
+    // Get all travelers
+    const travelers = await db.tripTraveler.findMany({
+      where: { tripId },
+      orderBy: [{ isOwner: 'desc' }, { createdAt: 'asc' }]
+    });
+
+    if (travelers.length === 0) {
+      return res.json({ settlements: [], summary: 'No travelers found', totalToSettle: 0 });
+    }
+
+    // Get all unsettled expense participants
+    const participants = await db.expenseParticipant.findMany({
+      where: {
+        expense: { tripId },
+        settled: false
+      },
+      include: {
+        expense: { include: { paidBy: true } }
+      }
+    });
+
+    // Calculate net balance per traveler
+    const balanceMap = {};
+    travelers.forEach(t => { balanceMap[t.id] = { balance: 0, traveler: { id: t.id, name: t.name, isOwner: t.isOwner } }; });
+
+    participants.forEach(p => {
+      const payerId = p.expense.paidById;
+      const participantId = p.travelerId;
+
+      if (payerId !== participantId) {
+        if (balanceMap[payerId]) balanceMap[payerId].balance += p.share;
+        if (balanceMap[participantId]) balanceMap[participantId].balance -= p.share;
+      }
+    });
+
+    const balances = Object.values(balanceMap);
+
+    // Minimum transaction algorithm — greedy matching
+    const creditors = balances
+      .filter(b => b.balance > 0.5)
+      .sort((a, b) => b.balance - a.balance)
+      .map(b => ({ ...b }));
+    const debtors = balances
+      .filter(b => b.balance < -0.5)
+      .sort((a, b) => a.balance - b.balance)
+      .map(b => ({ ...b }));
+
+    const settlements = [];
+    let i = 0, j = 0;
+
+    while (i < creditors.length && j < debtors.length) {
+      const amount = Math.min(creditors[i].balance, Math.abs(debtors[j].balance));
+      if (amount > 0.5) {
+        settlements.push({
+          from: debtors[j].traveler,
+          to: creditors[i].traveler,
+          amount: Math.round(amount * 100) / 100
+        });
+      }
+      creditors[i].balance -= amount;
+      debtors[j].balance += amount;
+      if (Math.abs(creditors[i].balance) < 0.5) i++;
+      if (Math.abs(debtors[j].balance) < 0.5) j++;
+    }
+
+    res.json({
+      settlements,
+      summary: `${settlements.length} transaction${settlements.length !== 1 ? 's' : ''} needed to settle all debts`,
+      totalToSettle: settlements.reduce((a, b) => a + b.amount, 0)
+    });
+  } catch (error) {
+    console.error('Smart settle error:', error);
+    res.status(500).json({ error: 'Failed to calculate settlements' });
+  }
+});
+
 module.exports = router;

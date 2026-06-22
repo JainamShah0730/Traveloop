@@ -22,6 +22,7 @@ import UserProfile from './components/UserProfile';
 import DestinationPackagesPage from './pages/DestinationPackagesPage';
 import PackageBookingPage from './pages/PackageBookingPage';
 import TravelCopilotPage from './pages/TravelCopilotPage';
+import TravelAgentPage from './pages/TravelAgentPage';
 import PackagesPage from './pages/PackagesPage';
 import TravelJournalView from './components/trips/TravelJournalView';
 import { Routes, Route } from 'react-router-dom';
@@ -86,6 +87,8 @@ export default function App() {
         return <CreateTrip setCurrentScreen={setCurrentScreen} />;
       case 'copilot':
         return <TravelCopilotPage />;
+      case 'agent':
+        return <TravelAgentPage />;
 
       default:
         return <div className="p-8 text-center text-slate-500 font-sans">Screen "{currentScreen}" is under construction.</div>;
@@ -119,6 +122,7 @@ export default function App() {
               <Route path="/destinations/:id/book" element={<PackageBookingPage setCurrentScreen={setCurrentScreen} setSelectedTripId={setSelectedTripId} />} />
               <Route path="/itinerary/:tripId" element={<BuilderScreen setCurrentScreen={setCurrentScreen} />} />
               <Route path="/copilot" element={<TravelCopilotPage />} />
+              <Route path="/agent" element={<TravelAgentPage />} />
               <Route path="*" element={renderScreen()} />
             </Routes>
           </div>
